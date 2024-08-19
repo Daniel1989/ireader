@@ -9,6 +9,8 @@ from django.utils.timezone import now as timezone_now
 
 import feedparser
 import urllib.parse
+import hashlib
+
 
 
 def is_valid_url(url):
@@ -114,10 +116,19 @@ def parse_rss(request):
     return JsonResponse({"success": True, "data": news}, safe=False)
 
 
+def generate_hash(input_string):
+    today_str = timezone_now().strftime('%Y-%m-%d')
+    salted_input = input_string + today_str
+    hash_object = hashlib.sha256()
+    hash_object.update(salted_input.encode('utf-8'))
+    hash_hex = hash_object.hexdigest()
+    return hash_hex
+
 def init(request):
     token = request.GET.get('tokendt')
     if token is not None and len(token) > 3:
         response = HttpResponse("Cookie has been set.")
-        response.set_cookie('tokendt', token, max_age=3600 * 24, httponly=True)  # Expires in 1 hour
+        cookie_value = generate_hash(token)
+        response.set_cookie('tokendt', cookie_value, max_age=3600 * 24, httponly=True)  # Expires in 1 hour
         return response
     return HttpResponseForbidden("请登录")
