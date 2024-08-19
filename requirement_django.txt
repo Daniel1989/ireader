@@ -30,3 +30,4 @@ python-dotenv
 django-cors-headers
 feedparser
 playwright
+torch

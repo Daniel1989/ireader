@@ -11,7 +11,7 @@ type FieldType = {
 
 
 const AddFeeds = (props: any) => {
-    const { callback } = props;
+    const { callback, type } = props;
     const [form] = Form.useForm();
 
     const onFinish: FormProps<FieldType>['onFinish'] = async (values) => {
@@ -23,6 +23,7 @@ const AddFeeds = (props: any) => {
             },
             body: JSON.stringify({
                 ...values,
+                type,
                 clientId: deviceId
             }),
         }).then((res) => {

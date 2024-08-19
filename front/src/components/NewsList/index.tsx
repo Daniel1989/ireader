@@ -6,7 +6,7 @@ import { CLIENT_ID, HOST } from '../../constnat';
 
 
 const NewsList = (props:any) => {
-    const { rssId, queryInfo } = props;
+    const { rssId, queryInfo, rssType } = props;
     const [news, setNews] = useState([
         // {
         //     aiSummary: "",
@@ -20,7 +20,7 @@ const NewsList = (props:any) => {
 
     const queryNews = async () => {
         const deviceId = await CLIENT_ID()
-        fetch(`${HOST}/rss/detail?id=${rssId}&clientId=${deviceId}`).then((res)=>{
+        fetch(`${HOST}/rss/detail?id=${rssId}&clientId=${deviceId}&type=${rssType}`).then((res)=>{
             res.json().then((data)=>{
                 setNews(data.data)
                 const waitingList = data.data.filter((item:any)=> item.aiSummaryStatus === 'waiting' || item.aiSummaryStatus === 'starting');
@@ -39,7 +39,7 @@ const NewsList = (props:any) => {
         if(rssId) {
             queryNews()
         }
-    }, [rssId])
+    }, [rssId, rssType])
 
     
 

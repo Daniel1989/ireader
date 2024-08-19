@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.timezone import now as timezone_now
 
+
 class CreationModificationDateMixin(models.Model):
     created = models.DateTimeField("创建时间", editable=False)
     modified = models.DateTimeField("修改时间", editable=False)
@@ -24,6 +25,7 @@ class UserRss(CreationModificationDateMixin):
     uid = models.CharField(max_length=255)
     url = models.CharField(max_length=255)
     title = models.CharField(max_length=255)
+    source_type = models.CharField(max_length=255, default='feeds')
 
     def __str__(self):
         return self.uid
@@ -32,6 +34,7 @@ class UserRss(CreationModificationDateMixin):
         verbose_name = 'rss'
         verbose_name_plural = 'rss'
         unique_together = (("uid", "url"), ("uid", "title"))
+
 
 class RssEntry(CreationModificationDateMixin):
     source = models.CharField(max_length=255)
@@ -44,6 +47,3 @@ class RssEntry(CreationModificationDateMixin):
     class Meta:
         verbose_name = 'entry'
         verbose_name_plural = 'entry'
-
-
-

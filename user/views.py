@@ -25,11 +25,12 @@ def add(request):
         req = json.loads(request.body)
         client_id = req.get('clientId')
         title = req.get('title')
+        source_type = req.get('type')
         url = req.get('url')
         if is_valid_url(url) is False:
             return JsonResponse({"success": False, "errorMsg": "订阅失败，请确认链接是否有效"}, safe=False)
         try:
-            UserRss.objects.create(uid=client_id, title=title, url=url)
+            UserRss.objects.create(uid=client_id, title=title, url=url, source_type=source_type)
         except Exception as e:
             return JsonResponse({"success": False, "errorMsg": "订阅失败，请确认标题或者链接是否已存在"}, safe=False)
         return JsonResponse({"success": True}, safe=False)
@@ -37,7 +38,8 @@ def add(request):
 
 def query_rss(request):
     client_id = request.GET.get("clientId")
-    rss_list = UserRss.objects.filter(uid=client_id).order_by('-id')
+    source = request.GET.get("type")
+    rss_list = UserRss.objects.filter(uid=client_id, source_type=source).order_by('-id')
     return JsonResponse({"success": True, "data": [{"id": item.id, "title": item.title, "url": item.url} for item in rss_list]}, safe=False)
 
 @csrf_exempt
@@ -57,28 +59,26 @@ def delete_rss(request):
 def parse_rss(request):
     id = request.GET.get("id")
     client_id = request.GET.get("clientId")
+    feed_type = request.GET.get("type")
     target = UserRss.objects.get(id=id)
     feed_url = target.url
 
     today_entry_list = RssEntry.objects.filter(source=feed_url, created__gte=datetime.date.today().strftime('%Y-%m-%d'))
     news = []
     if len(today_entry_list) < 1:
-        feed = feedparser.parse(feed_url)
-        # for entry in feed.entries:
-        #     RssEntry.objects.create({
-        #         "title": entry.title,
-        #         "link": entry.link,
-        #         "source": feed_url
-        #     })
-        RssEntry.objects.bulk_create([RssEntry(
-            title=entry.title,
-            link=entry.link,
-            source=feed_url,
-            created=timezone_now(),
-            modified=timezone_now()
-        ) for entry in feed.entries])
+        if feed_type == 'single':
+            RssEntry.objects.create(title=target.title, link=target.url, source=target.url)
+        else:
+            feed = feedparser.parse(feed_url)
+            RssEntry.objects.bulk_create([RssEntry(
+                title=entry.title,
+                link=entry.link,
+                source=feed_url,
+                created=timezone_now(),
+                modified=timezone_now()
+            ) for entry in feed.entries])
 
-    entry_list = RssEntry.objects.filter(source=feed_url).order_by('created')
+    entry_list = RssEntry.objects.filter(source=feed_url, created__gte=datetime.date.today().strftime('%Y-%m-%d')).order_by('created')
     for entry in entry_list:
         summary_tasks = SummaryTask.objects.filter(url=entry.link).order_by('-created')
         if summary_tasks:

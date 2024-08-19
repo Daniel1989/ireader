@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { DeleteOutlined } from '@ant-design/icons';
-import { Layout, Menu, message, theme } from 'antd';
+import { Button, Layout, Menu, message, theme } from 'antd';
 import AddFeeds from './components/AddFeeds';
 import { CLIENT_ID, HOST } from './constnat';
 import NewsList from './components/NewsList';
@@ -17,6 +17,7 @@ const App = (props:any) => {
 
   const [rssList, setRssList] = useState([]);
   const [selectId, setSelectId] = useState('');
+  const [rssType, setRssType] = useState('single');
 
   const deleteRss = async (id:number) => {
     const deviceId = await CLIENT_ID()
@@ -42,7 +43,7 @@ const App = (props:any) => {
 
   const queryRss = async () => {
     const deviceId = await CLIENT_ID()
-    fetch(`${HOST}/rss/list?clientId=${deviceId}`).then((res)=>{
+    fetch(`${HOST}/rss/list?clientId=${deviceId}&type=${rssType}`).then((res)=>{
        res.json().then((data)=>{
         const items = data.data.map(
             (item:any) => ({
@@ -89,9 +90,17 @@ const App = (props:any) => {
   })
   }
 
+  const switchType=() => {
+    if(rssType === 'feeds') {
+      setRssType('single')
+    } else {
+      setRssType('feeds')
+    }
+  }
+
   useEffect(()=>{
     queryRss()
-  }, [])
+  }, [rssType])
 
   return (
     <Layout style={{ height: '100%'}}>
@@ -107,7 +116,7 @@ const App = (props:any) => {
       >
         <div className="demo-logo-vertical" />
         <div style={{display: 'flex', justifyContent: 'center', margin: '20px 0', borderBottom: '1px solid #fff'}}>
-            <AddFeeds callback={queryRss}/>
+            <AddFeeds callback={queryRss} type={rssType}/>
         </div>
         <div>
             {
@@ -115,6 +124,9 @@ const App = (props:any) => {
                     <Menu theme="dark" mode="inline" defaultSelectedKeys={[selectId]} items={rssList} />
                 ) : null
             }
+        </div>
+        <div style={{display: 'flex', justifyContent: 'center', margin: '20px 0', borderTop: '1px solid #fff'}}>
+            <Button style={{margin: '20px 0'}} onClick={switchType}>{rssType === 'feeds' ? '使用单篇订阅' : '使用Feeds订阅'}</Button>
         </div>
       </Sider>
       <Layout>
@@ -135,7 +147,7 @@ const App = (props:any) => {
                         <h4>看起来您还没有添加过rss源，请在左侧订阅一个，您也可以从下面的推荐中选择订阅。（更多优质RSS可以到这里查找<a href="https://github.com/RSS-Renaissance/awesome-blogCN-feeds" target='_blank'>awesome-blogCN-feeds</a>）</h4>
                         <Recommend callback={addFeed}/>
                     </div>
-                ) : <NewsList rssId={selectId} queryInfo={queryInfo}/>
+                ) : <NewsList rssId={selectId} queryInfo={queryInfo} rssType={rssType}/>
             }
           </div>
         </Content>
