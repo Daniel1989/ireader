@@ -123,7 +123,7 @@ def crawl(url):
         result = summary(
             "根据下文输出一段500字以内的总结，待总结的内容是：" + web + "\n, 注意：只需要输出最后总结的内容，不要输出其他内容")
         return web, result
-    return ''
+    return '', ''
 
 
 def query(payload):
