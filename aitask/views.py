@@ -48,7 +48,7 @@ def next_task(request):
 def finish_task(request):
     if request.method == 'POST':
         data = json.loads(request.body)
-        print("aabb", data)
+        print("crawl result:", data)
         id = data.get('id')
         content = data.get('content')
         web = data.get('web')

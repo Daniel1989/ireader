@@ -228,7 +228,7 @@ if __name__ == "__main__":
                 end_time = time.time()
                 print("task cost time in seconds:", end_time - start_time)
             except Exception as e:
-                requests.post(f"{host}/ai/finish", json={"id": next_task["id"], "content": "", "status": "failed"})
+                requests.post(f"{host}/ai/finish", json={"id": next_task["id"], "content": "", "web": "", "status": "failed"})
                 traceback.print_exc()
                 print("error in do task: ", e)
         except Exception as e:
