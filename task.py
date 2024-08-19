@@ -122,7 +122,7 @@ def crawl(url):
         web = summary_api(prompt + "\n" + content)
         result = summary(
             "根据下文输出一段500字以内的总结，待总结的内容是：" + web + "\n, 注意：只需要输出最后总结的内容，不要输出其他内容")
-        return result
+        return web, result
     return ''
 
 
@@ -220,10 +220,10 @@ if __name__ == "__main__":
             next_task = next_task["data"][0]
             url = next_task["url"]
             try:
-                content = crawl(url)
+                web, content = crawl(url)
                 if len(content) < 10:
                     raise Exception("content is too short")
-                requests.post(f"{host}/ai/finish", json={"id": next_task["id"], "content": content, "status": "finish"})
+                requests.post(f"{host}/ai/finish", json={"id": next_task["id"], "web": web, "content": content, "status": "finish"})
                 end_time = time.time()
                 print("task cost time in seconds:", end_time - start_time)
             except Exception as e:

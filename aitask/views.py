@@ -50,10 +50,12 @@ def finish_task(request):
         data = json.loads(request.body)
         id = data.get('id')
         content = data.get('content')
+        web = data.get('web')
         status = data.get('status')
         task = SummaryTask.objects.get(id=id)
         task.status = 'finish'
         task.result = content
+        task.source = web
         task.status = status
         task.save()
         return JsonResponse({"success": True})

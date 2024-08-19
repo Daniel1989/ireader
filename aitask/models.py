@@ -37,6 +37,7 @@ class AiTask(CreationModificationDateMixin):
 class SummaryTask(CreationModificationDateMixin):
     url = models.CharField(max_length=255)
     status = models.CharField(max_length=255, default='waiting')
+    source = models.TextField(default='')
     result = models.TextField(default='')
     type = models.CharField(max_length=255, default='summarize')
 

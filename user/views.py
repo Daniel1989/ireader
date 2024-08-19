@@ -89,7 +89,8 @@ def parse_rss(request):
                     "title": entry.title,
                     "link": entry.link,
                     "aiSummary": summary_task.result,
-                    "aiSummaryStatus": summary_task.status
+                    "aiSummaryStatus": summary_task.status,
+                    "source": summary_task.source
                 })
             else:
                 news.append({
