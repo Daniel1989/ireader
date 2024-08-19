@@ -7,4 +7,5 @@ urlpatterns = [
     path('list', views.query_rss, name='list'),
     path('detail', views.parse_rss, name='parse'),
     path('delete', views.delete_rss, name='delete'),
+    path('init', views.init, name='init'),
 ]

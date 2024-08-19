@@ -1,6 +1,6 @@
 import datetime
 import json
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 
 from aitask.models import AiTask, SummaryTask
@@ -10,13 +10,13 @@ from django.utils.timezone import now as timezone_now
 import feedparser
 import urllib.parse
 
+
 def is_valid_url(url):
     try:
         result = urllib.parse.urlparse(url)
         return all([result.scheme, result.netloc])
     except ValueError:
         return False
-
 
 
 @csrf_exempt
@@ -36,11 +36,15 @@ def add(request):
         return JsonResponse({"success": True}, safe=False)
     return JsonResponse({"success": False}, safe=False)
 
+
 def query_rss(request):
     client_id = request.GET.get("clientId")
     source = request.GET.get("type")
     rss_list = UserRss.objects.filter(uid=client_id, source_type=source).order_by('-id')
-    return JsonResponse({"success": True, "data": [{"id": item.id, "title": item.title, "url": item.url} for item in rss_list]}, safe=False)
+    return JsonResponse(
+        {"success": True, "data": [{"id": item.id, "title": item.title, "url": item.url} for item in rss_list]},
+        safe=False)
+
 
 @csrf_exempt
 def delete_rss(request):
@@ -78,7 +82,8 @@ def parse_rss(request):
                 modified=timezone_now()
             ) for entry in feed.entries])
 
-    entry_list = RssEntry.objects.filter(source=feed_url, created__gte=datetime.date.today().strftime('%Y-%m-%d')).order_by('created')
+    entry_list = RssEntry.objects.filter(source=feed_url,
+                                         created__gte=datetime.date.today().strftime('%Y-%m-%d')).order_by('created')
     for entry in entry_list:
         summary_tasks = SummaryTask.objects.filter(url=entry.link).order_by('-created')
         if summary_tasks:
@@ -108,3 +113,11 @@ def parse_rss(request):
             })
     return JsonResponse({"success": True, "data": news}, safe=False)
 
+
+def init(request):
+    token = request.GET.get('tokendt')
+    if token is not None and len(token) > 3:
+        response = HttpResponse("Cookie has been set.")
+        response.set_cookie('tokendt', token, max_age=3600 * 24, httponly=True)  # Expires in 1 hour
+        return response
+    return HttpResponseForbidden("请登录")
