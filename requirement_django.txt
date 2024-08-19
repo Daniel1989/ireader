@@ -25,3 +25,8 @@ sqlparse==0.5.1
 tqdm==4.66.5
 typing_extensions==4.12.2
 urllib3==2.2.2
+beautifulsoup4
+python-dotenv
+django-cors-headers
+feedparser
+playwright

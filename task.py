@@ -169,9 +169,9 @@ def summary_api(content):
 
 
 def summary(content):
-    base_url = "http://127.0.0.1:8000/v1" if torch.cuda.is_available() else os.environ["BASE_URL"]
-    api_key = "empty" if torch.cuda.is_available() else os.environ["SERVERLESS_API_KEY"]
-    model_name = "Qwen/Qwen2-1.5B-Instruct-AWQ" if torch.cuda.is_available() else os.environ["MODEL_NAME"]
+    base_url = os.environ["BASE_URL"]
+    api_key = os.environ["SERVERLESS_API_KEY"]
+    model_name = os.environ["MODEL_NAME"]
     print("summary model_name", model_name)
     client = OpenAI(
         base_url=base_url,
@@ -192,7 +192,7 @@ def summary(content):
 
 
 if __name__ == "__main__":
-    host = "http://127.0.0.1:7860" if torch.cuda.is_available() else "http://127.0.0.1:8000"
+    host = "http://127.0.0.1:7860"
     while True:
         try:
             data = requests.get(f"{host}/crawl/ready")
