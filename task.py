@@ -116,6 +116,14 @@ def crawl(url):
                 print("error in playwright", e)
                 traceback.print_exc()
                 browser.close()
+                try:
+                    res = requests.get('https://www.greptile.com/blog/semantic')
+                    res.encoding = 'utf-8'  # Set the encoding
+                    content = res.text
+                except Exception as e:
+                    print("error in curl", e)
+                    traceback.print_exc()
+
     if content is not None:
         # print("获取的html内容：", content)
         # web = summary(prompt + "\n" + content)
@@ -224,11 +232,13 @@ if __name__ == "__main__":
                 web, content = crawl(url)
                 if len(content) < 10:
                     raise Exception("content is too short")
-                requests.post(f"{host}/ai/finish", json={"id": next_task["id"], "web": web, "content": content, "status": "finish"})
+                requests.post(f"{host}/ai/finish",
+                              json={"id": next_task["id"], "web": web, "content": content, "status": "finish"})
                 end_time = time.time()
                 print("task cost time in seconds:", end_time - start_time)
             except Exception as e:
-                requests.post(f"{host}/ai/finish", json={"id": next_task["id"], "content": "", "web": "", "status": "failed"})
+                requests.post(f"{host}/ai/finish",
+                              json={"id": next_task["id"], "content": "", "web": "", "status": "failed"})
                 traceback.print_exc()
                 print("error in do task: ", e)
         except Exception as e:
