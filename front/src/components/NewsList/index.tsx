@@ -19,36 +19,28 @@ const NewsList = (props:any) => {
     ]);
 
 
-    const queryNews = async (rssId: string, rssType: string) => {
-        const deviceId = await CLIENT_ID()
-        fetch(`${HOST}/rss/detail?id=${rssId}&clientId=${deviceId}&type=${rssType}`).then((res)=>{
-            res.json().then((data)=>{
-                setNews(data.data)
-                const waitingList = data.data.filter((item:any)=> item.aiSummaryStatus === 'waiting' || item.aiSummaryStatus === 'starting');
-                if(waitingList.length) {
-                    if(!queryNewsInterval) {
-                        queryNewsInterval = setInterval(()=> {
-                            queryNews(rssId, rssType);
-                            queryInfo();
-                        }, 5000)
-                    }
-                } else {
-                    queryNewsInterval && clearTimeout(queryNewsInterval)
-                }
+    const queryNews = useCallback(async ()=> {
+            const deviceId = await CLIENT_ID()
+            fetch(`${HOST}/rss/detail?id=${rssId}&clientId=${deviceId}&type=${rssType}`).then((res)=>{
+                res.json().then((data)=>{
+                    setNews(data.data)
+                    // const waitingList = data.data.filter((item:any)=> item.aiSummaryStatus === 'waiting' || item.aiSummaryStatus === 'starting');
+                })
             })
-        })
-    }
+    }, [rssId, rssType])
 
 
     useEffect(()=>{
         if(rssId) {
-            queryNews(rssId, rssType)
+            queryNewsInterval = setInterval(()=> {
+                queryNews()
+            }, 3000)
         }
         return () => {
             console.log("clear interval")
             queryNewsInterval && clearTimeout(queryNewsInterval)
         }
-    }, [rssId, rssType])
+    }, [rssId, rssType, queryNews])
 
     
 
@@ -78,8 +70,7 @@ const NewsList = (props:any) => {
         }).then((res) => {
             res.json().then((data) => {
                 if (data.success) {
-                    queryNewsInterval && clearTimeout(queryNewsInterval)
-                    queryNews(rssId, rssType)
+                    queryNews()
                 } else {
                     message.error(data.errorMsg)
                 }
