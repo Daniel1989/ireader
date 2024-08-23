@@ -32,6 +32,7 @@ const NewsList = (props:any) => {
 
     useEffect(()=>{
         if(rssId) {
+            queryNews();
             queryNewsInterval = setInterval(()=> {
                 queryNews()
             }, 3000)
