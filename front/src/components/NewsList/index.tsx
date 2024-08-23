@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import type { FormProps } from 'antd';
 import { Button, Checkbox, Form, Input, List, message } from 'antd';
 import { CLIENT_ID, HOST } from '../../constnat';
@@ -7,6 +7,7 @@ import { CLIENT_ID, HOST } from '../../constnat';
 
 const NewsList = (props:any) => {
     const { rssId, queryInfo, rssType } = props;
+    let queryNewsInterval: any = null
     const [news, setNews] = useState([
         // {
         //     aiSummary: "",
@@ -18,17 +19,21 @@ const NewsList = (props:any) => {
     ]);
 
 
-    const queryNews = async () => {
+    const queryNews = async (rssId: string, rssType: string) => {
         const deviceId = await CLIENT_ID()
         fetch(`${HOST}/rss/detail?id=${rssId}&clientId=${deviceId}&type=${rssType}`).then((res)=>{
             res.json().then((data)=>{
                 setNews(data.data)
                 const waitingList = data.data.filter((item:any)=> item.aiSummaryStatus === 'waiting' || item.aiSummaryStatus === 'starting');
                 if(waitingList.length) {
-                    setTimeout(()=> {
-                        queryNews();
-                        queryInfo();
-                    }, 5000)
+                    if(!queryNewsInterval) {
+                        queryNewsInterval = setInterval(()=> {
+                            queryNews(rssId, rssType);
+                            queryInfo();
+                        }, 5000)
+                    }
+                } else {
+                    queryNewsInterval && clearTimeout(queryNewsInterval)
                 }
             })
         })
@@ -37,7 +42,10 @@ const NewsList = (props:any) => {
 
     useEffect(()=>{
         if(rssId) {
-            queryNews()
+            queryNews(rssId, rssType)
+        }
+        return () => {
+            queryNewsInterval && clearTimeout(queryNewsInterval)
         }
     }, [rssId, rssType])
 
@@ -69,7 +77,7 @@ const NewsList = (props:any) => {
         }).then((res) => {
             res.json().then((data) => {
                 if (data.success) {
-                    queryNews()
+                    queryNews(rssId, rssType)
                 } else {
                     message.error(data.errorMsg)
                 }

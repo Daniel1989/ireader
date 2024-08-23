@@ -117,7 +117,7 @@ def crawl(url):
                 traceback.print_exc()
                 browser.close()
                 try:
-                    res = requests.get('https://www.greptile.com/blog/semantic')
+                    res = requests.get(url)
                     res.encoding = 'utf-8'  # Set the encoding
                     content = res.text
                 except Exception as e:
