@@ -45,6 +45,7 @@ const NewsList = (props:any) => {
             queryNews(rssId, rssType)
         }
         return () => {
+            console.log("clear interval")
             queryNewsInterval && clearTimeout(queryNewsInterval)
         }
     }, [rssId, rssType])
@@ -77,6 +78,7 @@ const NewsList = (props:any) => {
         }).then((res) => {
             res.json().then((data) => {
                 if (data.success) {
+                    queryNewsInterval && clearTimeout(queryNewsInterval)
                     queryNews(rssId, rssType)
                 } else {
                     message.error(data.errorMsg)
