@@ -32,7 +32,7 @@ class CookieCheckMiddleware:
         ip = self.get_client_ip(request)
 
         response = self.get_response(request)
-        if request.path == os.environ['WHITE_LIST_API_1']:
+        if request.path == os.environ['WHITE_LIST_API_1'] or request.path == os.environ['WHITE_LIST_API_5']:
             return response
 
         if ip == '127.0.0.1' and (request.path == os.environ['WHITE_LIST_API_2'] or request.path == os.environ['WHITE_LIST_API_3'] or request.path == os.environ['WHITE_LIST_API_4']):

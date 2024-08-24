@@ -9,4 +9,5 @@ urlpatterns = [
     path('crawl/', include('crawl.urls')),
     path('rss/', include('user.urls')),
     path('ai/', include('aitask.urls')),
+    path('kl/', include('knowledge.urls')),
 ]
