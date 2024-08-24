@@ -19,7 +19,8 @@ chrome.runtime.onInstalled.addListener(() => {
     const htmlContent = document.documentElement.outerHTML;
     const pageTitle = document.title;
     const pageUrl = window.location.href;
-    fetch('http://127.0.0.1:8000/kl/create', {
+    const url = 'http://127.0.0.1:8000/kl/create';
+    fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
