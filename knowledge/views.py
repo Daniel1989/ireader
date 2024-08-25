@@ -82,12 +82,13 @@ def parse(request):
 def generate_idea_from_hn(request):
     # prompt = request.GET.get("prompt")
     article_nums = 50
+    keywords = "what are you working on"
     now = datetime.now()
     one_year_ago = now - timedelta(days=365)
     timestamp = one_year_ago.timestamp()
     output = requests.get(
         "http://hn.algolia.com/api/v1/search_by_date?hitsPerPage=" + str(article_nums) + "&tags=ask_hn&numericFilters=created_at_i>" + str(
-            timestamp) + "&query=" + "what are you working on")
+            timestamp) + "&query=" + keywords)
     output = json.loads(output.text)
     ideas = []
     for item in output["hits"]:
