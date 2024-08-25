@@ -19,8 +19,8 @@ chrome.runtime.onInstalled.addListener(() => {
     const htmlContent = document.documentElement.outerHTML;
     const pageTitle = document.title;
     const pageUrl = window.location.href;
-    const url = 'http://127.0.0.1:8000/kl/create';
-    fetch(url, {
+//    const url = 'http://127.0.0.1:8000/kl/create';
+    fetch("https://www.bitstripe.cn/knowledge/kl/create?token=caodtP021022.", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

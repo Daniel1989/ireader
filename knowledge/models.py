@@ -39,3 +39,17 @@ class HtmlPage(CreationModificationDateMixin):
     class Meta:
         verbose_name = '网页知识点'
         verbose_name_plural = '网页知识点'
+
+class HNIdeas(CreationModificationDateMixin):
+    url = models.CharField(max_length=255)
+    story_id = models.CharField(max_length=64)
+    comment_id = models.CharField(max_length=64)
+    summary = models.TextField()
+    origin_text = MediumTextField(default="")
+
+    def __str__(self):
+        return self.url
+
+    class Meta:
+        verbose_name = 'ideas'
+        verbose_name_plural = 'ideas'

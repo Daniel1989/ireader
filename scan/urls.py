@@ -10,4 +10,5 @@ urlpatterns = [
     path('rss/', include('user.urls')),
     path('ai/', include('aitask.urls')),
     path('kl/', include('knowledge.urls')),
+    # path("ai-assistant/", include("django_ai_assistant.urls")),
 ]
