@@ -1,0 +1,56 @@
+Watching for file changes with StatReloader
+[08/Sep/2024 17:08:54] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:08:55] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:08:59] "GET /ai/next HTTP/1.1" 200 30
+Forbidden: /
+[08/Sep/2024 17:09:00] "GET / HTTP/1.1" 403 9
+Forbidden: /favicon.ico
+[08/Sep/2024 17:09:00] "GET /favicon.ico HTTP/1.1" 403 9
+[08/Sep/2024 17:09:00] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:04] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:04] "GET /rss/init?tokendt=caodt. HTTP/1.1" 200 20
+Not Found: /favicon.ico
+[08/Sep/2024 17:09:04] "GET /favicon.ico HTTP/1.1" 404 2523
+[08/Sep/2024 17:09:05] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:06] "GET / HTTP/1.1" 200 509
+[08/Sep/2024 17:09:06] "GET /static/css/main.e6c13ad2.css HTTP/1.1" 200 337
+[08/Sep/2024 17:09:06] "GET /static/js/main.6831c6dc.js HTTP/1.1" 200 910659
+[08/Sep/2024 17:09:07] "GET /rss/list?clientId=74a1085b&type=single HTTP/1.1" 200 29
+[08/Sep/2024 17:09:07] "GET /ai/waiting?clientId=74a1085b HTTP/1.1" 200 37
+[08/Sep/2024 17:09:09] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:10] "GET /kl/list HTTP/1.1" 200 96898
+[08/Sep/2024 17:09:10] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:14] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:15] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:19] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:20] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:24] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:25] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:29] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:30] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:34] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:35] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:39] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:40] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:44] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:45] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:49] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:50] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:54] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:55] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:09:59] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:00] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:04] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:05] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:09] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:10] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:14] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:15] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:19] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:20] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:24] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:26] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:29] "GET /ai/next HTTP/1.1" 200 30
+[08/Sep/2024 17:10:31] "GET /ai/next HTTP/1.1" 200 30
+Unknown command: '0.0.0.0:7860'
+Type 'manage.py help' for usage.
