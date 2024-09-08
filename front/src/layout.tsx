@@ -6,6 +6,8 @@ import { CLIENT_ID, HOST } from './constnat';
 import NewsList from './components/NewsList';
 import Recommend from './components/recommend';
 import Knowledge from './knowledge';
+import { Header } from 'antd/es/layout/layout';
+import { items1 } from './pages/futures';
 
 const { Content, Sider } = Layout;
 
@@ -107,33 +109,44 @@ const App = (props: any) => {
 
   return (
     <Layout style={{ height: '100%' }}>
-      <Sider
-        breakpoint="lg"
-        collapsedWidth="0"
-        onBreakpoint={(broken) => {
-          console.log(broken);
-        }}
-        onCollapse={(collapsed, type) => {
-          console.log(collapsed, type);
-        }}
-      >
-        <div className="demo-logo-vertical" />
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0', borderBottom: '1px solid #fff' }}>
-          <AddFeeds callback={queryRss} type={rssType} />
-        </div>
-        <div>
-          {
-            rssList.length ? (
-              <Menu theme="dark" mode="inline" defaultSelectedKeys={[selectId]} items={rssList} />
-            ) : null
-          }
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0', borderTop: '1px solid #fff', flexDirection: 'column' }}>
-          <Button style={{ margin: '20px 0' }} onClick={switchType}>{rssType === 'feeds' ? '使用单篇订阅' : '使用Feeds订阅'}</Button>
-          <Button style={{ margin: '20px 0' }} onClick={() => setEnableKnowledge(!enableKnowledge)}>{enableKnowledge ? '关闭知识库' : '打开知识库'}</Button>
-        </div>
-      </Sider>
+      <Header style={{ display: 'flex', alignItems: 'center' }}>
+        <div className="demo-logo" />
+        <Menu
+          theme="dark"
+          mode="horizontal"
+          defaultSelectedKeys={['2']}
+          items={items1}
+          style={{ flex: 1, minWidth: 0 }}
+        />
+      </Header>
+
       <Layout>
+        <Sider
+          breakpoint="lg"
+          collapsedWidth="0"
+          onBreakpoint={(broken) => {
+            console.log(broken);
+          }}
+          onCollapse={(collapsed, type) => {
+            console.log(collapsed, type);
+          }}
+        >
+          <div className="demo-logo-vertical" />
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0', borderBottom: '1px solid #fff' }}>
+            <AddFeeds callback={queryRss} type={rssType} />
+          </div>
+          <div>
+            {
+              rssList.length ? (
+                <Menu theme="dark" mode="inline" defaultSelectedKeys={[selectId]} items={rssList} />
+              ) : null
+            }
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '20px 0', borderTop: '1px solid #fff', flexDirection: 'column' }}>
+            <Button style={{ margin: '20px 0' }} onClick={switchType}>{rssType === 'feeds' ? '使用单篇订阅' : '使用Feeds订阅'}</Button>
+            <Button style={{ margin: '20px 0' }} onClick={() => setEnableKnowledge(!enableKnowledge)}>{enableKnowledge ? '关闭知识库' : '打开知识库'}</Button>
+          </div>
+        </Sider>
         <Content style={{ margin: '24px 16px 0' }}>
           {
             enableKnowledge ? <Knowledge /> : (

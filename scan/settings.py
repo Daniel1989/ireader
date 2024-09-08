@@ -29,6 +29,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'futures.apps.FuturesConfig',
     'knowledge.apps.KnowledgeConfig',
     'crawl.apps.CrawlConfig',
     'user.apps.UserConfig',

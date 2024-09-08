@@ -29,22 +29,23 @@ class CookieCheckMiddleware:
         return ip
 
     def __call__(self, request):
-        ip = self.get_client_ip(request)
-
         response = self.get_response(request)
-        if request.path == os.environ['WHITE_LIST_API_1'] or request.path == os.environ['WHITE_LIST_API_5']:
-            return response
 
-        if ip == '127.0.0.1' and (request.path == os.environ['WHITE_LIST_API_2'] or request.path == os.environ['WHITE_LIST_API_3'] or request.path == os.environ['WHITE_LIST_API_4']):
-            return response
-
-        if 'tokendt' not in request.COOKIES:
-            return HttpResponseForbidden("请登录")
-
-        else:
-            cookie_value = request.COOKIES[os.environ['COOKIE_NAME']]
-            target_value = self.generate_hash(os.environ['SALT'])
-            if cookie_value != target_value:
-                return HttpResponseForbidden("请登录")
+        # ip = self.get_client_ip(request)
+        #
+        # if request.path == os.environ['WHITE_LIST_API_1'] or request.path == os.environ['WHITE_LIST_API_5']:
+        #     return response
+        #
+        # if ip == '127.0.0.1' and (request.path == os.environ['WHITE_LIST_API_2'] or request.path == os.environ['WHITE_LIST_API_3'] or request.path == os.environ['WHITE_LIST_API_4']):
+        #     return response
+        #
+        # if 'tokendt' not in request.COOKIES:
+        #     return HttpResponseForbidden("请登录")
+        #
+        # else:
+        #     cookie_value = request.COOKIES[os.environ['COOKIE_NAME']]
+        #     target_value = self.generate_hash(os.environ['SALT'])
+        #     if cookie_value != target_value:
+        #         return HttpResponseForbidden("请登录")
 
         return response
