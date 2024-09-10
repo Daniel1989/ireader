@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { FormProps } from 'antd';
 import { Button, Checkbox, Form, Input, Collapse, Calendar, DatePicker, Select, message } from 'antd';
 import dayjs from 'dayjs';
@@ -40,13 +40,10 @@ export const LABEL_MAP: { [key: string]: string } = {
     whatIfAgainstTrending: '反向预测'
 }
 
-export const GOODS_LIST = [
-    '黄金',
-    '白银',
-]
 
 
 const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
+    const [goodsList, setGoodsList] = useState([]);
     const { initialValues, callback } = props
     const [form] = Form.useForm();
     const onFinishGoods: FormProps<FieldType>['onFinish'] = (values) => {
@@ -92,13 +89,25 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
 
     const onFill = () => {
         const name = form.getFieldValue('name')
-        const index = GOODS_LIST.findIndex((item) => item === name);
+        const index = goodsList.findIndex((item) => item === name);
         form.resetFields();
-        form.setFieldValue('name', GOODS_LIST[index + 1]);
+        form.setFieldValue('name', goodsList[index + 1]);
     };
 
     const today = new Date();
     const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    useEffect(() => {
+        fetch(`${HOST}/futures/goodslist`).then((res) => {
+            res.json().then((data) => {
+                setGoodsList(data)
+            })
+        })
+    }, [])
+
+    if(!goodsList.length) {
+        return null
+    }
 
     return (
         <Collapse defaultActiveKey={['1']}>
@@ -109,7 +118,7 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
                     labelCol={{ span: 8 }}
                     wrapperCol={{ span: 16 }}
                     initialValues={initialValues || {
-                        name: GOODS_LIST[0],
+                        name: goodsList[0],
                         date: dayjs(new Date()),
                     }}
                     onFinish={onFinishGoods}
@@ -129,7 +138,7 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
                                     >
                                         <Select style={{ width: "190px" }} >
                                             {
-                                                GOODS_LIST.map((item) => (
+                                                goodsList.map((item) => (
                                                     <Select.Option value={item}>{item}</Select.Option>
                                                 ))
                                             }

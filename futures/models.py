@@ -52,3 +52,9 @@ class Market(CreationModificationDateMixin):
 
     def __str__(self):
         return self.date
+
+class GoodsItem(CreationModificationDateMixin):
+    name = models.CharField(max_length=255, default='')
+
+    def __str__(self):
+        return self.name

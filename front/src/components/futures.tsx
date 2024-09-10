@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Space, Table, Tag, Collapse, Tooltip, DatePicker, Select, Checkbox, Modal } from 'antd';
-import { GOODS_LIST, LABEL_MAP } from './form';
+import { LABEL_MAP } from './form';
 import dayjs from 'dayjs';
 import { HOST } from '../constnat';
 import Form from './form'
@@ -11,10 +11,12 @@ import Form from './form'
 
 
 const App: React.FC = () => {
+    const [goodsList, setGoodsList] = useState([]);
+
     const today = new Date();
 
     const [data, setData] = useState([])
-    const [goods, setGoods] = useState(GOODS_LIST[0])
+    const [goods, setGoods] = useState('')
     const [date, setDate] = useState(dayjs(today))
     const [isShowAll, setIsShowAll] = useState(false)
 
@@ -68,6 +70,19 @@ const App: React.FC = () => {
         loadData()
     }, [goods, date, isShowAll])
 
+    useEffect(() => {
+        fetch(`${HOST}/futures/goodslist`).then((res) => {
+            res.json().then((data) => {
+                setGoodsList(data)
+                setGoods(data[0])
+            })
+        })
+    }, [])
+
+    if(!goodsList.length) {
+        return null
+    }
+
     return (
         <Collapse defaultActiveKey={['1']}>
             <Collapse.Panel header="数据" key="1">
@@ -75,7 +90,7 @@ const App: React.FC = () => {
                     <DatePicker onChange={(date) => setDate(date)} value={date} />
                     <Select disabled={isShowAll} value={goods} style={{ width: 120, margin: "0 12px" }} onChange={(value) => setGoods(value as any)}>
                         {
-                            GOODS_LIST.map((item: any) => <Select.Option value={item}>{item}</Select.Option>)
+                            goodsList.map((item: any) => <Select.Option value={item}>{item}</Select.Option>)
                         }
                     </Select>
                     <Checkbox onChange={(e) => setIsShowAll(e.target.checked)} checked={isShowAll} >显示当日全部</Checkbox>

@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
-from futures.models import Goods, Market
+from futures.models import Goods, Market, GoodsItem
 
 
 # Create your views here.
@@ -51,7 +51,7 @@ def list(request):
         market = Market.objects.filter(date=date).first()
         return JsonResponse([{
             **model_to_dict(item),
-            "market": market.market
+            "market": market.market if market else ''
         } for item in data], safe=False)
     else:
         data = Goods.objects.filter(name=goods).order_by('-date')
@@ -66,3 +66,7 @@ def list(request):
                 "market": market[index].market
             } for index, item in enumerate(data)], safe=False)
 
+
+def goodslist(request):
+    data = GoodsItem.objects.all().order_by('created')
+    return JsonResponse([item.name for item in data], safe=False)
