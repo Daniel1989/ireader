@@ -29,6 +29,8 @@ class Goods(CreationModificationDateMixin):
     specialDaily = models.CharField(max_length=255, default='')
     currentBoxTop = models.CharField(max_length=255, default='')
     currentBoxBottom = models.CharField(max_length=255, default='')
+    pcIndex = models.CharField(max_length=255, default='')
+    cclTrending = models.CharField(max_length=255, default='')
     predictTrending = models.CharField(max_length=255, default='')
     predictTrendingReason = models.CharField(max_length=255, default='')
     stopLoss = models.CharField(max_length=255, default='')

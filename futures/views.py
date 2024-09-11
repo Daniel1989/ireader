@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from django.forms import model_to_dict
@@ -70,3 +71,12 @@ def list(request):
 def goodslist(request):
     data = GoodsItem.objects.all().order_by('created')
     return JsonResponse([item.name for item in data], safe=False)
+
+def detail(request):
+    goods = request.GET.get('goods')
+    today_str = datetime.datetime.now().strftime('%Y-%m-%d')
+    data = Goods.objects.filter(name=goods, date__lt=today_str).order_by('-date')
+    if len(data) > 0:
+        return JsonResponse(model_to_dict(data[0]), safe=False)
+    else:
+        return JsonResponse({}, safe=False)

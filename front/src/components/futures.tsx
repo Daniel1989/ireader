@@ -20,7 +20,7 @@ const App: React.FC = () => {
     const [date, setDate] = useState(dayjs(today))
     const [isShowAll, setIsShowAll] = useState(false)
 
-    const [editItem, setEditItem] = useState<null|any>(null);
+    const [editItem, setEditItem] = useState<null | any>(null);
 
     const columns: any[] = Object.keys(LABEL_MAP).map((key) => {
         return {
@@ -79,7 +79,7 @@ const App: React.FC = () => {
         })
     }, [])
 
-    if(!goodsList.length) {
+    if (!goodsList.length) {
         return null
     }
 
@@ -88,7 +88,10 @@ const App: React.FC = () => {
             <Collapse.Panel header="数据" key="1">
                 <div style={{ display: 'flex', justifyItems: 'center', alignItems: 'center' }}>
                     <DatePicker onChange={(date) => setDate(date)} value={date} />
-                    <Select disabled={isShowAll} value={goods} style={{ width: 120, margin: "0 12px" }} onChange={(value) => setGoods(value as any)}>
+                    <Select disabled={isShowAll} value={goods} style={{ width: 120, margin: "0 12px" }} onChange={(value) => setGoods(value as any)} showSearch
+                        filterOption={(input, option) =>
+                            (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                        }>
                         {
                             goodsList.map((item: any) => <Select.Option value={item}>{item}</Select.Option>)
                         }
@@ -100,10 +103,10 @@ const App: React.FC = () => {
                     <Form initialValues={{
                         ...editItem,
                         date: dayjs(editItem?.date)
-                    }} callback={() =>  {
+                    }} callback={() => {
                         setEditItem(null);
                         loadData();
-                    }}/>
+                    }} />
                 </Modal>
             </Collapse.Panel>
         </Collapse>

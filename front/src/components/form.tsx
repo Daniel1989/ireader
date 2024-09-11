@@ -26,11 +26,13 @@ type FieldType = {
 export const LABEL_MAP: { [key: string]: string } = {
     name: '品种名称',
     date: '交易日期',
-    currentTrending: '当日趋势',
+    currentTrending: '当月趋势',
     last5DaysTrending: '5日趋势',
     specialDaily: '特殊K线',
     currentBoxTop: '箱体顶部',
     currentBoxBottom: '箱体底部',
+    pcIndex: 'PC指数',
+    cclTrending: '仓量变化',
     predictTrending: '预测趋势',
     predictTrendingReason: '预测原因',
     stopLoss: '止损位置',
@@ -38,12 +40,15 @@ export const LABEL_MAP: { [key: string]: string } = {
     category: '板块走势',
     categoryGoods: '板块商品',
     whatIfAgainstTrending: '反向预测'
+
 }
 
 
 
 const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
     const [goodsList, setGoodsList] = useState([]);
+    const [placeHodlerValue, setPlaceHodlerValue] = useState(null);
+
     const { initialValues, callback } = props
     const [form] = Form.useForm();
     const onFinishGoods: FormProps<FieldType>['onFinish'] = (values) => {
@@ -88,6 +93,16 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
 
 
     const onFill = () => {
+        if (placeHodlerValue) {
+            Object.keys(placeHodlerValue || {}).forEach((key) => {
+                if (key !== 'name' && key !== 'date') {
+                    form.setFieldValue(key, placeHodlerValue[key]);
+                }
+            })
+        }
+    };
+
+    const onNext = () => {
         const name = form.getFieldValue('name')
         const index = goodsList.findIndex((item) => item === name);
         form.resetFields();
@@ -105,7 +120,19 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
         })
     }, [])
 
-    if(!goodsList.length) {
+    useEffect(() => {
+        loadDetail()
+    }, [goodsList])
+
+    const loadDetail = (name?: string) => {
+        fetch(`${HOST}/futures/detail?goods=${name || goodsList[0]}`).then((res) => {
+            res.json().then((data) => {
+                setPlaceHodlerValue(data)
+            })
+        })
+    }
+
+    if (!goodsList.length) {
         return null
     }
 
@@ -136,7 +163,10 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
                                         rules={[{ required: true }]}
 
                                     >
-                                        <Select style={{ width: "190px" }} >
+                                        <Select style={{ width: "190px" }} onChange={(e) => loadDetail(e)} showSearch
+                                            filterOption={(input, option) =>
+                                                (option?.value ?? '').toString().toLowerCase().includes(input.toLowerCase())
+                                            }>
                                             {
                                                 goodsList.map((item) => (
                                                     <Select.Option value={item}>{item}</Select.Option>
@@ -165,7 +195,7 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
                                     style={{ marginBottom: "8px" }}
                                     rules={[{ required: true }]}
                                 >
-                                    <Input.TextArea />
+                                    <Input.TextArea placeholder={placeHodlerValue?.[key]} />
                                 </Form.Item>
                             )
                         })
@@ -173,25 +203,32 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
                     {
                         !initialValues ? null : (
                             <Form.Item<FieldType>
-                                    label='大盘'
-                                    name='market'
-                                    style={{ marginBottom: "8px" }}
-                                    rules={[{ required: true }]}
-                                >
-                                    <Input.TextArea />
-                                </Form.Item>
+                                label='大盘'
+                                name='market'
+                                style={{ marginBottom: "8px" }}
+                                rules={[{ required: true }]}
+                            >
+                                <Input.TextArea />
+                            </Form.Item>
                         )
                     }
                     <Form.Item wrapperCol={{ offset: 8, span: 16 }} style={{ margin: "12px" }}>
                         <Button type="primary" htmlType="submit">
                             提交
                         </Button>
+                        {
+                            placeHodlerValue ? (
+                                <Button htmlType="button" onClick={onFill} style={{ marginTop: "8px" }}>
+                                    使用上一日填充
+                                </Button>
+                            ) : null
+                        }
                         {/* <Button htmlType="button" onClick={onReset} style={{ marginTop: "8px", marginLeft: '8px' }}>
                             清空
                         </Button> */}
                         {
                             initialValues ? null : (
-                                <Button htmlType="button" onClick={onFill} style={{ marginTop: "8px" }}>
+                                <Button htmlType="button" onClick={onNext} style={{ marginTop: "8px" }}>
                                     下一个
                                 </Button>
                             )
