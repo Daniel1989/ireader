@@ -23,14 +23,20 @@ const App: React.FC = () => {
     const [editItem, setEditItem] = useState<null | any>(null);
 
     const columns: any[] = Object.keys(LABEL_MAP).map((key) => {
-        return {
+        const item = {
             title: LABEL_MAP[key],
             dataIndex: key,
             key: key,
+            width: 200,
             render: (value: any) => {
                 return <span><Tooltip title={value}>{value}</Tooltip></span>
             }
         }
+        if(key==='name') {
+            (item as any).fixed = 'left'
+            item.width = 100
+        }
+        return item
     })
 
     columns.push(
@@ -38,6 +44,7 @@ const App: React.FC = () => {
             title: '大盘',
             key: 'market',
             dataIndex: "market",
+            width: 200,
             render: (value: any) => {
                 return <span><Tooltip title={value}>{value}</Tooltip></span>
             }
@@ -49,6 +56,8 @@ const App: React.FC = () => {
             title: '操作',
             key: 'action',
             dataIndex: "action",
+            fixed: 'right',
+            width: 80,
             render: (_: any, record: any) => (
                 <Space size="middle">
                     <a onClick={() => setEditItem(record)}>编辑</a>
@@ -98,7 +107,7 @@ const App: React.FC = () => {
                     </Select>
                     <Checkbox onChange={(e) => setIsShowAll(e.target.checked)} checked={isShowAll} >显示当日全部</Checkbox>
                 </div>
-                <Table columns={columns} dataSource={data} />
+                <Table columns={columns} dataSource={data} scroll={{ x: 1500 }} />
                 <Modal title="修改" open={!!editItem} footer={null} onCancel={() => setEditItem(null)} destroyOnClose>
                     <Form initialValues={{
                         ...editItem,

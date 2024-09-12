@@ -107,10 +107,10 @@ const App: React.FC<{ initialValues?: any, callback?: any }> = (props: any) => {
         const index = goodsList.findIndex((item) => item === name);
         form.resetFields();
         form.setFieldValue('name', goodsList[index + 1]);
+        loadDetail(goodsList[index + 1])
     };
 
     const today = new Date();
-    const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     useEffect(() => {
         fetch(`${HOST}/futures/goodslist`).then((res) => {
