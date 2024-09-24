@@ -32,7 +32,7 @@ const App: React.FC = () => {
                 return <span><Tooltip title={value}>{value}</Tooltip></span>
             }
         }
-        if(key==='name') {
+        if (key === 'name') {
             (item as any).fixed = 'left'
             item.width = 100
         }
@@ -46,7 +46,11 @@ const App: React.FC = () => {
             dataIndex: "market",
             width: 200,
             render: (value: any) => {
-                return <span><Tooltip title={value}>{value}</Tooltip></span>
+                return <span style={{
+                    display: "inline-block",
+                    height: "70px",
+                    overflow: "hidden"
+                }}><Tooltip title={value} >{value}</Tooltip></span>
             }
         }
     )
