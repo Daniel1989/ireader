@@ -86,28 +86,29 @@ def generate_idea_from_hn(request):
     now = datetime.now()
     one_year_ago = now - timedelta(days=365)
     timestamp = one_year_ago.timestamp()
-    output = requests.get(
-        "http://hn.algolia.com/api/v1/search_by_date?hitsPerPage=" + str(article_nums) + "&tags=ask_hn&numericFilters=created_at_i>" + str(
-            timestamp) + "&query=" + keywords)
+    url = "http://hn.algolia.com/api/v1/search_by_date?hitsPerPage=" + str(article_nums) + "&tags=ask_hn&numericFilters=created_at_i>" + str(
+            timestamp) + "&query=" + keywords
+    output = requests.get(url)
     output = json.loads(output.text)
     ideas = []
     for item in output["hits"]:
-        res = chat(
-            "You are a Hacker news reader bot. Check the following story if is asking for people to show their recent ideas. just return 'Yes' or 'No'.\n the story is:\n" +
-            item["story_text"])
-        if 'Yes' in res:
-            url = "https://hn.algolia.com/api/v1/items/" + str(item["story_id"])
-            detail_res = requests.get(url)
-            detail_res = json.loads(detail_res.text)
-            for item in detail_res["children"]:
-                if item["type"] == "comment":
-                    comment = gen_comment(item)
-                    ideas.append({
-                        "story_id": item["story_id"],
-                        "comment": comment[0],
-                        "commend_id": comment[1],
-                        "url": url
-                    })
+        if "story_text" in item:
+            res = chat(
+                "You are a Hacker news reader bot. Check the following story if is asking for people to show their recent ideas. just return 'Yes' or 'No'.\n the story is:\n" +
+                item["story_text"])
+            if 'Yes' in res:
+                url = "https://hn.algolia.com/api/v1/items/" + str(item["story_id"])
+                detail_res = requests.get(url)
+                detail_res = json.loads(detail_res.text)
+                for item in detail_res["children"]:
+                    if item["type"] == "comment":
+                        comment = gen_comment(item)
+                        ideas.append({
+                            "story_id": item["story_id"],
+                            "comment": comment[0],
+                            "commend_id": comment[1],
+                            "url": url
+                        })
     result = []
     for item in ideas:
         res = chat(
