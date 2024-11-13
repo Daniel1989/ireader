@@ -1,10 +1,24 @@
+import json
 import os
 
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from openai import OpenAI
+import uuid
 
 load_dotenv()
+
+api_key = os.environ["SERVERLESS_API_KEY"]
+
+# base_url = os.environ["BASE_URL"]
+# model_name = os.environ["MODEL_NAME"]
+base_url = os.environ["BASE_URL_LOCAL"]
+model_name = os.environ["MODEL_NAME_LOCAL"]
+
+client = OpenAI(
+    base_url=base_url,
+    api_key=api_key,
+)
 
 prompt = '''
 # 角色
@@ -94,13 +108,6 @@ def clearup(html):
 
 
 def chat(content):
-    base_url = os.environ["BASE_URL"]
-    api_key = os.environ["SERVERLESS_API_KEY"]
-    model_name = os.environ["MODEL_NAME"]
-    client = OpenAI(
-        base_url=base_url,
-        api_key=api_key,
-    )
     completion = client.chat.completions.create(
         model=model_name,
         temperature=0.7,
@@ -115,6 +122,27 @@ def chat(content):
     return completion.choices[0].message.content
 
 
+def stream_chat(content):
+    uid = str(uuid.uuid4())
+    for chunk in client.chat.completions.create(
+            model=model_name,
+            temperature=0.7,
+            stream=True,
+            top_p=0.8,
+            max_tokens=2048,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": content}
+            ]
+    ):
+        res = chunk.choices[0].delta.content
+        if chunk.choices[0].finish_reason == 'stop':
+            data = json.dumps(dict(textResponse=res, uuid=chunk.id, sources=[], type='finalizeResponseStream', close=True, error=False), ensure_ascii=False)
+        else:
+            data = json.dumps(dict(textResponse=res, uuid=chunk.id, sources=[], type='textResponseChunk', close=False, error=False), ensure_ascii=False)
+        yield f'data: {data}\n\n'
+
+
 def exact(html):
     content = clearup(html)
     web = chat(prompt + "\n" + content)
@@ -125,3 +153,11 @@ def summary(content):
     result = chat(
         "根据下文输出一段500字以内的中文总结，待总结的内容是：" + content + "\n, 注意：只需要输出最后总结的内容，不要输出其他内容")
     return result
+
+
+# TODO 使用embedding
+
+def create_embedding(text):
+    model_name = os.environ["EMBEDDING_MODEL_NAME"]
+    response = client.embeddings.create(input=[str(text)], model=model_name)
+    return response

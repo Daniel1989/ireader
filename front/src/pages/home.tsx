@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import '../App.css';
 import { Input, Button, Alert } from 'antd';
 import Layout from '../layout';
 import { CLIENT_ID, HOST } from '../constnat';

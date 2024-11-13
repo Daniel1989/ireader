@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
-    'django_ai_assistant'
+    # 'django_ai_assistant'
 ]
 
 MIDDLEWARE = [
@@ -142,3 +142,9 @@ CORS_ALLOW_HEADERS = '*'
 # AI_ASSISTANT_CAN_UPDATE_MESSAGE_FN = "django_ai_assistant.permissions.owns_thread"
 # AI_ASSISTANT_CAN_DELETE_MESSAGE_FN = "django_ai_assistant.permissions.owns_thread"
 # AI_ASSISTANT_CAN_RUN_ASSISTANT = "django_ai_assistant.permissions.allow_all"
+# CSRF_TRUSTED_ORIGINS = [
+#     "http://localhost:3000",
+# ]
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+# ]
