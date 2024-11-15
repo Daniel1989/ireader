@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Input, Button, Alert } from 'antd';
+import {  Alert } from 'antd';
 import Layout from '../layout';
 import { CLIENT_ID, HOST } from '../constnat';
 
