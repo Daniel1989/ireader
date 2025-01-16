@@ -16,9 +16,7 @@ from knowledge.llm import exact, summary, chat, create_embedding, stream_chat
 from knowledge.models import HtmlPage, HNIdeas
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from .render.sse_render import ServerSentEventRenderer
-from rest_framework.decorators import api_view, permission_classes, renderer_classes
-from rest_framework.permissions import AllowAny
+from django.core.paginator import Paginator
 
 import logging
 
@@ -68,7 +66,11 @@ def create(request):
 
 
 def page_list(request):
+    page_size = request.GET.get("pageSize", 10)
+    page_no = request.GET.get("pageNo", 1)
     pages = HtmlPage.objects.all().order_by('-created')
+    p = Paginator(pages, page_size)
+    target_page =p.page(page_no)
     data = [{
         "id": item.id,
         "title": item.title,
@@ -76,8 +78,8 @@ def page_list(request):
         "text": item.text,
         "summary": item.summary,
         "created": item.created
-    } for item in pages]
-    return JsonResponse({"success": True, "data": data})
+    } for item in target_page.object_list]
+    return JsonResponse({"success": True, "data": data, "total": p.count, "hasNext": target_page.has_next()})
 
 
 @csrf_exempt
@@ -156,6 +158,9 @@ def gen_comment(comment):
 
 
 def create_vector(request):
+    # TODO 1122, 这里每次请求进来时，首先要走原来的create，将内容落库
+    # 然后启动一个异步任务，进行大模型抓取和向量化
+    # 所以需要一个异步轮训，每分钟查找未翻译的，然后进行翻译
     url = 'http://localhost:4321/blog/2024-11-01'
     title = 'Marketing Management Book Summary'
     desc = "Marketing Management Book Summary' Description"
