@@ -10,10 +10,10 @@ load_dotenv()
 
 api_key = os.environ["SERVERLESS_API_KEY"]
 
-# base_url = os.environ["BASE_URL"]
-# model_name = os.environ["MODEL_NAME"]
-base_url = os.environ["BASE_URL_LOCAL"]
-model_name = os.environ["MODEL_NAME_LOCAL"]
+base_url = os.environ["BASE_URL"]
+model_name = os.environ["MODEL_NAME"]
+# base_url = os.environ["BASE_URL_LOCAL"]
+# model_name = os.environ["MODEL_NAME_LOCAL"]
 
 client = OpenAI(
     base_url=base_url,

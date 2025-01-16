@@ -19,6 +19,27 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from django.core.paginator import Paginator
 
 import logging
+import os
+
+from knowledge.tasks import parse_html_page
+from celery.exceptions import OperationalError
+from redis.exceptions import ConnectionError, TimeoutError, RedisError
+import redis
+from django.conf import settings
+
+# Set up logging directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# Set up basic logging configuration
+log_file = os.path.join(LOG_DIR, 'django_views.log')
+logging.basicConfig(
+    filename=log_file,
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s %(module)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +79,30 @@ def create(request):
             html = data.get('content')
             text = ""
             content = ""
-            HtmlPage.objects.create(url=url, title=title, html=html, text=text, summary=content)
+            # Create the object and store the id
+            html_page = HtmlPage.objects.create(url=url, title=title, html=html, text=text, summary=content)
+            try:
+                task = parse_html_page.delay(html_page.id)
+            except (OperationalError, ConnectionError, TimeoutError, RedisError) as e:
+                return JsonResponse({
+                    "success": True, 
+                    "message": "创建成功，但后台处理任务暂时无法启动，请稍后重试",
+                    "id": html_page.id,
+                    "error": str(e)
+                })
+            except Exception as e:
+                return JsonResponse({
+                    "success": True,
+                    "message": "创建成功，但后台处理任务出现未知错误",
+                    "id": html_page.id,
+                    "error": str(e)
+                })
+            
+            return JsonResponse({"success": True, "message": "创建成功", "id": html_page.id})
         except Exception as e:
             return JsonResponse({"success": False, "message": "创建失败：" + str(e)})
 
-    return JsonResponse({"success": True, "message": "创建成功"})
+    return JsonResponse({"success": False, "message": "只支持POST请求"})
 
 
 def page_list(request):
