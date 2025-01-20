@@ -2,13 +2,14 @@ from celery import shared_task
 import os
 import django
 import logging
-from knowledge.llm import exact, summary, chat, llm_create_embedding
-from knowledge.models import HtmlPage, Tag, Vector
+from knowledge.llm import exact, summary, chat, llm_create_embedding, translate_text
+from knowledge.models import HtmlPage, Tag, Vector, SystemConfig
 from knowledge.embedding import updateOrCreateTable, storeVectorResult
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import uuid
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from knowledge.prompts import get_tag_generation_prompt
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -26,18 +27,6 @@ logger = logging.getLogger(__name__)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'scan.settings')
 django.setup()
 
-tag_prompt = '''
-Based on the following text, generate 3-5 relevant tags. Each tag should be:
-1. Short (1-3 words)
-2. Relevant to the main topics
-3. Useful for categorization
-
-Return only the tags, separated by commas, without any other text.
-Example return format: technology, AI, web development
-
-Text to analyze:
-'''
-
 @shared_task(bind=True)
 def parse_html_page(self, page_id):
     try:
@@ -46,13 +35,32 @@ def parse_html_page(self, page_id):
         html_page.status = HtmlPage.Status.PROCESSING
         html_page.save()
 
+        # Get original text
         text = exact(html_page.html)
+        
+        # Get target language from system config
+        try:
+            config = SystemConfig.objects.get(key="target_language")
+            target_language = config.value.get("language", "Chinese")  # Default to Chinese if not specified
+            logger.info(f"Translating text to {target_language}")
+            
+            # Translate text
+            translated_text = translate_text(text, target_language)
+            html_page.target_language_text = translated_text
+            logger.info("Translation completed successfully")
+            
+        except SystemConfig.DoesNotExist:
+            logger.warning("No target language configuration found, skipping translation")
+        except Exception as e:
+            logger.error(f"Translation failed: {str(e)}")
+            # Continue processing even if translation fails
+        
         summary_content = summary(text)
         
         # Generate tags
-        tags_response = chat(tag_prompt + text)
+        tags_response = chat(get_tag_generation_prompt(text))
         tags = [tag.strip() for tag in tags_response.split(',')]
-        print(tags)
+        
         # Save everything and set status to FINISH
         html_page.text = text
         html_page.summary = summary_content

@@ -4,9 +4,12 @@ import uuid
 import logging
 import lancedb
 from openai import AzureOpenAI
+from dotenv import load_dotenv
 
 VECTOR_NAMESPACE = 'urlV1'
 
+# Load environment variables
+load_dotenv()
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,12 +30,14 @@ logger = logging.getLogger(__name__)
 uri = "./data"
 db = lancedb.connect(uri)
 
-# Azure OpenAI Configuration
+# Azure OpenAI Configuration from environment variables
 azure_client = AzureOpenAI(
-    api_key="913da79919784e5bbd655866b058b2e1",
-    api_version="2024-02-15-preview",
-    azure_endpoint="https://llm-australiaeast.azure.yowant.link/"
+    api_key=os.environ.get("AZURE_API_KEY"),
+    api_version=os.environ.get("AZURE_API_VERSION"),
+    azure_endpoint=os.environ.get("AZURE_ENDPOINT")
 )
+
+logger.info(f"Azure client configured with endpoint: {os.environ.get('AZURE_ENDPOINT')}")
 
 def create_embedding(text):
     try:

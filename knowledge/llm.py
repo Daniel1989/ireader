@@ -6,6 +6,12 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import uuid
 from knowledge.embedding import vectorSearch, create_embedding
+from knowledge.prompts import (
+    get_html_extraction_prompt,
+    get_translation_prompt,
+    get_summary_prompt,
+    get_chat_context_prompt
+)
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -38,27 +44,6 @@ client = OpenAI(
     base_url=base_url,
     api_key=api_key,
 )
-
-prompt = '''
-# 角色
-你是一个高效的网页内容提取器，能够从 HTML 页面中精准提取正文内容，包括所有标题和正文，同时保持文章结构完整。
-
-## 技能
-### 技能 1: 提取正文内容
-1. 当接收到一个 HTML 页面地址时，分析页面结构。
-2. 识别并提取所有可见的标题和正文内容、段落内容, 尽可能把持原始文章完整。
-3. 过滤掉网页中的非可见元素，如隐藏的代码块、注释等。
-4. 排除广告元素及其他非文章相关内容。
-
-## 限制:
-- 只处理 HTML 页面的正文提取任务，拒绝回答与提取正文无关的问题。
-- 确保提取的内容准确反映文章结构，不遗漏重要信息。
-- 不输出任何未经确认的信息。
-- 保持原文的语言，不要翻译。
-
-## 待分析的html:
-'''
-
 
 def clearup(html):
     elements_to_remove = [
@@ -150,16 +135,7 @@ def stream_chat(content):
         context_str = "\n\n".join(context_texts) if context_texts else ""
         
         # Create prompt with context
-        prompt_with_context = f"""Please answer based on the following context and the question. If the context doesn't help answer the question, just answer based on your knowledge.
-
-Context:
-{context_str}
-
-Question:
-{content}
-
-Answer:
-"""
+        prompt_with_context = get_chat_context_prompt(context_str, content)
         logger.info(f"Streaming chat with context. Query: {content[:100]}...")
         
         # Format references for the response
@@ -219,13 +195,12 @@ Answer:
 
 def exact(html):
     content = clearup(html)
-    web = chat(prompt + "\n" + content)
+    web = chat(get_html_extraction_prompt() + "\n" + content)
     return web
 
 
 def summary(content):
-    result = chat(
-        "根据下文输出一段500字以内的中文总结，待总结的内容是：" + content + "\n, 注意：只需要输出最后总结的内容，不要输出其他内容")
+    result = chat(get_summary_prompt(content))
     return result
 
 
@@ -240,4 +215,26 @@ def llm_create_embedding(text):
         return response
     except Exception as e:
         logger.error(f"Azure embedding creation failed: {str(e)}")
+        raise e
+
+
+def translate_text(text, target_language):
+    try:
+        logger.info(f"Starting translation to {target_language}")
+        completion = client.chat.completions.create(
+            model=model_name,
+            temperature=0.7,
+            stream=False,
+            top_p=0.8,
+            max_tokens=4096,
+            messages=[
+                {"role": "system", "content": "You are a professional translator."},
+                {"role": "user", "content": get_translation_prompt(text, target_language)}
+            ]
+        )
+        translated_text = completion.choices[0].message.content
+        logger.info("Translation completed successfully")
+        return translated_text
+    except Exception as e:
+        logger.error(f"Translation failed: {str(e)}")
         raise e

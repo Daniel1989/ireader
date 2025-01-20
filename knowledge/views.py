@@ -13,7 +13,7 @@ import json
 from knowledge.embedding import updateOrCreateTable, storeVectorResult, vectorSearch
 # from knowledge.ai_assistants import WeatherAIAssistant
 from knowledge.llm import exact, summary, chat, create_embedding, stream_chat
-from knowledge.models import HtmlPage, HNIdeas
+from knowledge.models import HtmlPage, HNIdeas, Conversation, Message
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from django.core.paginator import Paginator
@@ -26,6 +26,12 @@ from celery.exceptions import OperationalError
 from redis.exceptions import ConnectionError, TimeoutError, RedisError
 import redis
 from django.conf import settings
+
+from knowledge.prompts import (
+    get_idea_generation_prompt,
+    get_hn_comment_check_prompt,
+    get_product_idea_check_prompt
+)
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -44,27 +50,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # assistant = WeatherAIAssistant()
-
-
-prompt = '''
-# 角色
-你是一个专业且富有洞察力的产品经理，你正在和一个工程师进行对话。对话内容是有关最近他正在做什么的描述，你能够精准地根据他的描述提取出具有创新性和市场潜力的产品，并明确其面向的场景和人群。
-
-## 技能
-### 技能 1: 提取产品
-1. 仔细分析给定的描述，提取出核心的产品概念和特点。
-2. 考虑产品的功能、用途、形态等方面，形成清晰的产品定义。
-
-### 技能 2: 确定面向人群
-1. 基于产品的特点和用途，分析可能受益或对其感兴趣的人群特征。
-2. 明确人群的年龄范围、性别、职业、消费习惯等关键因素。
-
-## 限制:
-- 只依据给定的描述进行产品提取和人群分析，不自行假设或添加额外信息。
-- 输出内容应清晰、准确、有条理，符合产品管理的专业规范。
-
-## 对话内容
-'''
 
 
 # Create your views here.
@@ -135,9 +120,7 @@ def generate_idea_from_hn(request):
     ideas = []
     for item in output["hits"]:
         if "story_text" in item:
-            res = chat(
-                "You are a Hacker news reader bot. Check the following story if is asking for people to show their recent ideas. just return 'Yes' or 'No'.\n the story is:\n" +
-                item["story_text"])
+            res = chat(get_hn_comment_check_prompt(item["story_text"]))
             if 'Yes' in res:
                 url = "https://hn.algolia.com/api/v1/items/" + str(item["story_id"])
                 detail_res = requests.get(url)
@@ -153,13 +136,11 @@ def generate_idea_from_hn(request):
                         })
     result = []
     for item in ideas:
-        res = chat(
-            "You are a Hacker news reader bot. Check the following comment if is describing a product or an idea about hardware or software or applications. just return 'Yes' or 'No'.\n the comment is:\n" +
-            item["comment"])
+        res = chat(get_product_idea_check_prompt(item["comment"]))
         if 'Yes' in res:
-            res = chat(prompt + "\n" + item["comment"])
+            res = chat(get_idea_generation_prompt() + "\n" + item["comment"])
             HNIdeas.objects.create(url=item["url"], story_id=item["story_id"], comment_id=item["commend_id"],
-                                   summary=res, origin_text=item["comment"])
+                                summary=res, origin_text=item["comment"])
             result.append(res)
     return JsonResponse({"success": True, "data": result})
 
@@ -189,3 +170,115 @@ def chatgpt(request):
         return response
     else:
         return JsonResponse({"success": False, "message": "请求方式错误"})
+
+@csrf_exempt
+def create_conversation(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            title = data.get('title', f'对话 {timezone_now().strftime("%Y-%m-%d %H:%M")}')
+            
+            conversation = Conversation.objects.create(title=title)
+            
+            # Add system message if provided
+            initial_message = data.get('message')
+            if initial_message:
+                Message.objects.create(
+                    conversation=conversation,
+                    role=Message.Role.USER,
+                    content=initial_message
+                )
+                
+                # Get AI response
+                response = stream_chat(initial_message)
+                Message.objects.create(
+                    conversation=conversation,
+                    role=Message.Role.ASSISTANT,
+                    content=response
+                )
+            
+            return JsonResponse({
+                "success": True, 
+                "conversation_id": conversation.id,
+                "title": conversation.title
+            })
+            
+        except Exception as e:
+            logger.error(f"Error creating conversation: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"创建对话失败: {str(e)}"
+            })
+    
+    return JsonResponse({"success": False, "message": "只支持POST请求"})
+
+@csrf_exempt
+def chat_with_history(request, conversation_id):
+    if request.method == 'POST':
+        try:
+            conversation = Conversation.objects.get(id=conversation_id)
+            data = json.loads(request.body)
+            message = data.get('message')
+            
+            # Save user message
+            Message.objects.create(
+                conversation=conversation,
+                role=Message.Role.USER,
+                content=message
+            )
+            
+            # Get chat history
+            history = Message.objects.filter(conversation=conversation).order_by('created')
+            history_text = "\n".join([
+                f"{'User' if msg.role == Message.Role.USER else 'Assistant'}: {msg.content}"
+                for msg in history
+            ])
+            
+            # Stream response with history context
+            response = StreamingHttpResponse(
+                stream_chat(message, history_text), 
+                content_type="text/event-stream"
+            )
+            response['X-Accel-Buffering'] = 'no'
+            response['Cache-Control'] = 'no-cache'
+            return response
+            
+        except Conversation.DoesNotExist:
+            return JsonResponse({
+                "success": False,
+                "message": "对话不存在"
+            })
+        except Exception as e:
+            logger.error(f"Error in chat: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"聊天失败: {str(e)}"
+            })
+    
+    return JsonResponse({"success": False, "message": "只支持POST请求"})
+
+def get_conversation_history(request, conversation_id):
+    try:
+        conversation = Conversation.objects.get(id=conversation_id)
+        messages = conversation.messages.all().order_by('created')
+        
+        return JsonResponse({
+            "success": True,
+            "conversation": {
+                "id": conversation.id,
+                "title": conversation.title,
+                "status": conversation.status,
+                "messages": [{
+                    "role": msg.role,
+                    "content": msg.content,
+                    "references": msg.references,
+                    "created": msg.created.isoformat()
+                } for msg in messages]
+            }
+        })
+        
+    except Conversation.DoesNotExist:
+        return JsonResponse({
+            "success": False,
+            "message": "对话不存在"
+        })

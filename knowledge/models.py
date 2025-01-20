@@ -34,6 +34,7 @@ class HtmlPage(CreationModificationDateMixin):
 
     html = MediumTextField()
     text = MediumTextField(default="")
+    target_language_text = MediumTextField(default="", verbose_name='目标语言文本')
     summary = models.TextField(default="")
     url = models.CharField(max_length=255)
     title = models.CharField(max_length=255)
@@ -88,3 +89,65 @@ class Vector(models.Model):
     class Meta:
         verbose_name = '向量存储'
         verbose_name_plural = '向量存储'
+
+class SystemConfig(models.Model):
+    key = models.CharField(max_length=100, unique=True, verbose_name='配置键名')
+    value = models.JSONField(verbose_name='配置值')
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.key}: {self.value}"
+
+    class Meta:
+        verbose_name = '系统配置'
+        verbose_name_plural = '系统配置'
+        ordering = ['-modified']  # Sort by last modified time
+
+class Conversation(CreationModificationDateMixin):
+    class Status(models.TextChoices):
+        ACTIVE = 'ACTIVE', '进行中'
+        ARCHIVED = 'ARCHIVED', '已归档'
+
+    title = models.CharField(max_length=255, verbose_name='对话标题')
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+        verbose_name='状态'
+    )
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        verbose_name = '对话'
+        verbose_name_plural = '对话'
+        ordering = ['-modified']
+
+class Message(CreationModificationDateMixin):
+    class Role(models.TextChoices):
+        USER = 'USER', '用户'
+        ASSISTANT = 'ASSISTANT', '助手'
+
+    conversation = models.ForeignKey(
+        Conversation, 
+        on_delete=models.CASCADE, 
+        related_name='messages',
+        verbose_name='所属对话'
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=Role.choices,
+        verbose_name='发送者'
+    )
+    content = models.TextField(verbose_name='消息内容')
+    references = models.JSONField(default=list, blank=True, verbose_name='引用来源')
+
+    def __str__(self):
+        return f"{self.role}: {self.content[:50]}..."
+
+    class Meta:
+        verbose_name = '消息'
+        verbose_name_plural = '消息'
+        ordering = ['created']
