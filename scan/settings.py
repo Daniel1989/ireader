@@ -29,11 +29,8 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
-    'futures.apps.FuturesConfig',
     'knowledge.apps.KnowledgeConfig',
     'crawl.apps.CrawlConfig',
-    'user.apps.UserConfig',
-    'aitask.apps.AitaskConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,7 +45,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'user.middleware.CookieCheckMiddleware',
+    'knowledge.middleware.CookieCheckMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

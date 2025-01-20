@@ -1,21 +1,68 @@
 import json
 import os
 import uuid
-
+import logging
 import lancedb
+from openai import AzureOpenAI
+
+VECTOR_NAMESPACE = 'urlV1'
+
+
+# Set up logging directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# Set up logging configuration
+log_file = os.path.join(LOG_DIR, 'embedding.log')
+logging.basicConfig(
+    filename=log_file,
+    level=logging.INFO,
+    format='[%(asctime)s] %(levelname)s %(module)s %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
+logger = logging.getLogger(__name__)
 
 uri = "./data"
 db = lancedb.connect(uri)
 
+# Azure OpenAI Configuration
+azure_client = AzureOpenAI(
+    api_key="913da79919784e5bbd655866b058b2e1",
+    api_version="2024-02-15-preview",
+    azure_endpoint="https://llm-australiaeast.azure.yowant.link/"
+)
 
-# result = table.search([100, 100]).limit(2).to_pandas()
+def create_embedding(text):
+    try:
+        logger.info(f"Starting embedding creation for text: {text[:100]}...")  # Log first 100 chars
+        
+        response = azure_client.embeddings.create(
+            input=str(text),
+            model="text-embedding-ada-002",
+            timeout=200
+        )
+        
+        # Log successful response details
+        logger.info(f"Embedding created successfully. Response model: {response.model}")
+        logger.info(f"Number of embeddings created: {len(response.data)}")
+        logger.info(f"Embedding dimensions: {len(response.data[0].embedding)}")
+        logger.info(f"Usage tokens: {response.usage.total_tokens}")
+        
+        return response
+    except Exception as e:
+        logger.error(f"Azure embedding creation failed with error: {str(e)}")
+        logger.error(f"Failed text: {text[:100]}...")  # Log the text that failed
+        logger.exception("Full traceback:")  # This logs the full stack trace
+        raise e
 
 def check_table_exist(name):
     tables = db.table_names()
     return name in tables
 
-
-def updateOrCreateTable(name, data):
+def updateOrCreateTable(data):
+    name = VECTOR_NAMESPACE
     # [
     #     {"vector": [1.3, 1.4], "item": "fizz", "price": 100.0},
     #     {"vector": [9.5, 56.2], "item": "buzz", "price": 200.0},
@@ -31,7 +78,6 @@ def updateOrCreateTable(name, data):
         # tbl.create_index(num_sub_vectors=1)
     return True
 
-
 def storeVectorResult(vectorData, url):
     path = 'vector_data'
     os.makedirs(path, exist_ok=True)
@@ -39,7 +85,6 @@ def storeVectorResult(vectorData, url):
     path = os.path.join(path, digest.hex + '.json')
     with open(path, 'w') as f:
         f.write(json.dumps(vectorData))
-
 
 def distanceToSimilarity(distance: None | float):
     if distance is None or not isinstance(distance, float):
@@ -51,19 +96,59 @@ def distanceToSimilarity(distance: None | float):
     else:
         return 1.0 - distance
 
-
-def vectorSearch(name, query_vector):
-    tbl = db.open_table(name)
-    result = tbl.search(query_vector).metric("cosine").limit(4).to_pandas()
-    context_texts = []
-    source_documents = []
-    score = []
-    for index, row in result.iterrows():
-        # 设定最小余弦距离阈值的主要原因是为了排除过于接近的匹配、增加结果的多样性、增强泛化性，从而满足特定的业务需求。
-        MIN_DISTANCE = 0.25
-        if row["_distance"] >= MIN_DISTANCE:
-            score.append(distanceToSimilarity(row["_distance"]))
-            context_texts.append(row["text"])
-            source_documents.append(row.to_dict())
-
-    return context_texts, score, source_documents
+def vectorSearch(query_vector):
+    try:
+        name = VECTOR_NAMESPACE
+        logger.info(f"Starting vector search in table: {name}")
+        logger.info(f"Query vector dimensions: {len(query_vector)}")
+        
+        tbl = db.open_table(name)
+        logger.info(f"Successfully opened table: {name}")
+        
+        result = tbl.search(query_vector).metric("cosine").limit(4).to_pandas()
+        logger.info(f"Search completed. Found {len(result)} results")
+        
+        context_texts = []
+        source_documents = []
+        score = []
+        references = []  # New list for storing references
+        
+        logger.info("Processing search results...")
+        MIN_DISTANCE = 0.15
+        for index, row in result.iterrows():
+            distance = row["_distance"]
+            logger.info(f"Result {index + 1}: Distance = {distance}")
+            
+            if distance >= MIN_DISTANCE:
+                similarity = distanceToSimilarity(distance)
+                score.append(similarity)
+                context_texts.append(row["text"])
+                
+                # Convert row to dict and ensure all numpy arrays are converted to lists
+                doc_dict = row.to_dict()
+                for key, value in doc_dict.items():
+                    if hasattr(value, 'tolist'):  # Check if it's a numpy array
+                        doc_dict[key] = value.tolist()
+                source_documents.append(doc_dict)
+                
+                # Add reference information
+                references.append({
+                    "url": row["url"],
+                    "title": row["title"],
+                    "similarity": similarity
+                })
+                
+                logger.info(f"Added result {index + 1} with similarity score: {similarity}")
+                logger.debug(f"Text snippet: {row['text'][:100]}...")
+            else:
+                logger.info(f"Skipped result {index + 1}: Distance {distance} below threshold {MIN_DISTANCE}")
+        
+        logger.info(f"Vector search complete. Found {len(context_texts)} relevant matches")
+        logger.info(f"Similarity scores: {score}")
+        
+        return context_texts, score, source_documents, references
+    except Exception as e:
+        logger.error("Error during vector search")
+        logger.error(f"Error details: {str(e)}")
+        logger.exception("Full traceback:")
+        raise e
