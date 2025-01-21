@@ -70,63 +70,63 @@ def create(request):
             parse_html_page.delay(html_page.id, text)
 
             # Process vectors
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=20,
-                length_function=len,
-                separators=["\n\n", "\n", " ", ".", ",", "\u200b", "\uff0c", "\u3001", "\uff0e", "\u3002", ""]
-            )
+            # text_splitter = RecursiveCharacterTextSplitter(
+            #     chunk_size=1000,
+            #     chunk_overlap=20,
+            #     length_function=len,
+            #     separators=["\n\n", "\n", " ", ".", ",", "\u200b", "\uff0c", "\u3001", "\uff0e", "\u3002", ""]
+            # )
             
-            texts = text_splitter.create_documents([text])
-            contents = [text.page_content for text in texts]
+            # texts = text_splitter.create_documents([text])
+            # contents = [text.page_content for text in texts]
             
-            vectors = []
-            submissions = []
-            print("texts lengths", len(texts))
-            print("contents lengths", len(contents))
-            with ThreadPoolExecutor() as executor:
-                futures = [executor.submit(llm_create_embedding, text) for text in contents]
-                vector_values = [future.result() for future in as_completed(futures)]
+            # vectors = []
+            # submissions = []
+            # print("texts lengths", len(texts))
+            # print("contents lengths", len(contents))
+            # with ThreadPoolExecutor() as executor:
+            #     futures = [executor.submit(llm_create_embedding, text) for text in contents]
+            #     vector_values = [future.result() for future in as_completed(futures)]
 
-                for index, vector in enumerate(vector_values):
-                    vector_id = uuid.uuid4()
-                    text_chunk = contents[index]
-                    embedding = vector.data[0].embedding
+            #     for index, vector in enumerate(vector_values):
+            #         vector_id = uuid.uuid4()
+            #         text_chunk = contents[index]
+            #         embedding = vector.data[0].embedding
                     
-                    # Save to Vector model (simplified)
-                    Vector.objects.create(
-                        html_page=html_page,
-                        vector_id=vector_id
-                    )
+            #         # Save to Vector model (simplified)
+            #         Vector.objects.create(
+            #             html_page=html_page,
+            #             vector_id=vector_id
+            #         )
                     
-                    # Prepare data for Lance DB
-                    vector_record = {
-                        "id": str(vector_id),
-                        "values": embedding,
-                        "metadata": {
-                            "text": text_chunk,
-                            "url": html_page.url,
-                            "title": html_page.title,
-                            "description": html_page.summary[:200],
-                        }
-                    }
-                    vectors.append(vector_record)
-                    submissions.append({
-                        "id": str(vector_id),
-                        "text": text_chunk,
-                        "url": html_page.url,
-                        "title": html_page.title,
-                        "description": html_page.summary[:200],
-                        "vector": embedding
-                    })
+            #         # Prepare data for Lance DB
+            #         vector_record = {
+            #             "id": str(vector_id),
+            #             "values": embedding,
+            #             "metadata": {
+            #                 "text": text_chunk,
+            #                 "url": html_page.url,
+            #                 "title": html_page.title,
+            #                 "description": html_page.summary[:200],
+            #             }
+            #         }
+            #         vectors.append(vector_record)
+            #         submissions.append({
+            #             "id": str(vector_id),
+            #             "text": text_chunk,
+            #             "url": html_page.url,
+            #             "title": html_page.title,
+            #             "description": html_page.summary[:200],
+            #             "vector": embedding
+            #         })
 
-                # Store in Lance DB
-                updateOrCreateTable(submissions)
+            #     # Store in Lance DB
+            #     updateOrCreateTable(submissions)
 
-                # Store vector results in chunks
-                size = 500
-                chunks = [vectors[i * size:(i + 1) * size] for i in range(math.ceil(len(vectors) / size))]
-                storeVectorResult(chunks, html_page.url)
+            #     # Store vector results in chunks
+            #     size = 500
+            #     chunks = [vectors[i * size:(i + 1) * size] for i in range(math.ceil(len(vectors) / size))]
+            #     storeVectorResult(chunks, html_page.url)
             
             return JsonResponse({"success": True, "message": "创建成功", "id": html_page.id})
         except Exception as e:
