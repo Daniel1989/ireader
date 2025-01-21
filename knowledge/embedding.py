@@ -64,6 +64,7 @@ def create_embedding(text):
 
 def check_table_exist(name):
     tables = db.table_names()
+    logger.info(f"tables name: {tables}")
     return name in tables
 
 def updateOrCreateTable(data):
