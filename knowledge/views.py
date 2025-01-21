@@ -65,7 +65,7 @@ def create(request):
             html = data.get('content')
             content = ""
             # Create the object and store the id
-            html_page = HtmlPage.objects.create(url=url, title=title, html=html, text=text, summary=content)
+            html_page = HtmlPage.objects.create(url=url, title=title, html=html, text='', summary=content)
 
             def async_parse():
                 try:
