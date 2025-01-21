@@ -69,24 +69,27 @@ def create_embedding(text):
 
 def check_table_exist(name):
     tables = db.table_names()
-    logger.info(f"tables name: {tables}")
+    print(f"tables name: {tables}")
     return name in tables
 
 def updateOrCreateTable(data):
     name = VECTOR_NAMESPACE
-    print("111@@@@@@@@@@@@@@@@@@", name)
-    if check_table_exist(name):
-        print("222@@@@@@@@@@@@@@@@@@")
-        tbl = db.open_table(name)
-        print("333@@@@@@@@@@@@@@@@@@")
-        data = data
-        tbl.add(data)
-        print("4443@@@@@@@@@@@@@@@@@@")
-    else:
-        
-        db.create_table(name, data=data)
-        tbl = db.open_table(name)
-        tbl.add(data)
+    try:
+        logger.info(f"Attempting to update or create table: {name}")
+        if check_table_exist(name):
+            logger.info(f"Table {name} exists, opening and adding data")
+            tbl = db.open_table(name)
+            tbl.add(data)
+        else:
+            logger.info(f"Table {name} does not exist, creating new table")
+            db.create_table(name, data=data)
+            tbl = db.open_table(name)
+            tbl.add(data)
+        logger.info(f"Successfully updated table {name}")
+    except Exception as e:
+        logger.error(f"Failed to update or create table {name}: {str(e)}")
+        logger.exception("Full traceback:")
+        raise e
         # tbl.create_index(num_sub_vectors=1)
     return True
 
