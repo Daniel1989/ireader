@@ -27,7 +27,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-uri = "./data"
+uri = "./iread_data"
 if not os.access(os.path.dirname(uri), os.W_OK):
     print(f"No write permission for database location: {uri}")
 else:
