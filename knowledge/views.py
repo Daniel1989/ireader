@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, StreamingHttpResponse
 import json
 
-from knowledge.llm import chat, stream_chat, llm_create_embedding
+from knowledge.llm import exact, chat, stream_chat, llm_create_embedding
 from knowledge.models import HtmlPage, HNIdeas, Conversation, Message, Vector
 
 from django.core.paginator import Paginator
@@ -63,11 +63,11 @@ def create(request):
             url = data.get('url')
             title = data.get('title')
             html = data.get('content')
-            text = ""
             content = ""
+            text = exact(html)
             # Create the object and store the id
             html_page = HtmlPage.objects.create(url=url, title=title, html=html, text=text, summary=content)
-            task = parse_html_page.delay(html_page.id)
+            parse_html_page.delay(html_page.id, text)
 
             # Process vectors
             text_splitter = RecursiveCharacterTextSplitter(
@@ -77,7 +77,7 @@ def create(request):
                 separators=["\n\n", "\n", " ", ".", ",", "\u200b", "\uff0c", "\u3001", "\uff0e", "\u3002", ""]
             )
             
-            texts = text_splitter.create_documents([html_page.text])
+            texts = text_splitter.create_documents([text])
             contents = [text.page_content for text in texts]
             
             vectors = []

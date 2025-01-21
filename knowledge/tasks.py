@@ -28,7 +28,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'scan.settings')
 django.setup()
 
 @shared_task(bind=True)
-def parse_html_page(self, page_id):
+def parse_html_page(self, page_id, text):
     try:
         html_page = HtmlPage.objects.get(id=page_id)
         # Set status to PROCESSING
@@ -36,7 +36,7 @@ def parse_html_page(self, page_id):
         html_page.save()
 
         # Get original text
-        text = exact(html_page.html)
+        # text = exact(html_page.html)
         
         # Get target language from system config
         try:
