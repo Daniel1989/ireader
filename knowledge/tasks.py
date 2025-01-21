@@ -126,8 +126,6 @@ def parse_html_page(self, page_id):
 
         # Store in Lance DB
         print("##########################")
-        print(submissions)
-        print("##########################")
         updateOrCreateTable(submissions)
 
         # Store vector results in chunks

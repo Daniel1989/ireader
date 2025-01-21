@@ -28,6 +28,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 uri = "./data"
+if not os.access(os.path.dirname(uri), os.W_OK):
+    print(f"No write permission for database location: {uri}")
+else:
+    print("有写权限")
+
 db = lancedb.connect(uri)
 
 # Azure OpenAI Configuration from environment variables
@@ -69,23 +74,16 @@ def check_table_exist(name):
 
 def updateOrCreateTable(data):
     name = VECTOR_NAMESPACE
-    # [
-    #     {"vector": [1.3, 1.4], "item": "fizz", "price": 100.0},
-    #     {"vector": [9.5, 56.2], "item": "buzz", "price": 200.0},
-    # ]
+    print("111@@@@@@@@@@@@@@@@@@", name)
     if check_table_exist(name):
+        print("222@@@@@@@@@@@@@@@@@@")
         tbl = db.open_table(name)
+        print("333@@@@@@@@@@@@@@@@@@")
         data = data
         tbl.add(data)
+        print("4443@@@@@@@@@@@@@@@@@@")
     else:
-        print("@@@@@@@@@@@@@@@@@@")
-        print(data)
-        print("@@@@@@@@@@@@@@@@@@")
-        # Check if we have write permissions for the database location
-        if not os.access(os.path.dirname(uri), os.W_OK):
-            logger.error(f"No write permission for database location: {uri}")
-            raise PermissionError(f"No write permission for database location: {uri}")
-            
+        
         db.create_table(name, data=data)
         tbl = db.open_table(name)
         tbl.add(data)

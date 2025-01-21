@@ -1,8 +1,3 @@
-import asyncio
-import math
-import time
-import uuid
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 
 import requests
@@ -10,11 +5,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, StreamingHttpResponse
 import json
 
-from knowledge.embedding import updateOrCreateTable, storeVectorResult, vectorSearch
-# from knowledge.ai_assistants import WeatherAIAssistant
-from knowledge.llm import exact, summary, chat, create_embedding, stream_chat
+from knowledge.llm import chat, stream_chat
 from knowledge.models import HtmlPage, HNIdeas, Conversation, Message
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from django.core.paginator import Paginator
 
@@ -24,7 +16,6 @@ import os
 from knowledge.tasks import parse_html_page
 from celery.exceptions import OperationalError
 from redis.exceptions import ConnectionError, TimeoutError, RedisError
-import redis
 from django.conf import settings
 import hashlib
 from django.utils.timezone import now as timezone_now
