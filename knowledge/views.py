@@ -119,13 +119,13 @@ def create(request):
                         "vector": embedding
                     })
 
-            # Store in Lance DB
-            updateOrCreateTable(submissions)
+                # Store in Lance DB
+                updateOrCreateTable(submissions)
 
-            # Store vector results in chunks
-            size = 500
-            chunks = [vectors[i * size:(i + 1) * size] for i in range(math.ceil(len(vectors) / size))]
-            storeVectorResult(chunks, html_page.url)
+                # Store vector results in chunks
+                size = 500
+                chunks = [vectors[i * size:(i + 1) * size] for i in range(math.ceil(len(vectors) / size))]
+                storeVectorResult(chunks, html_page.url)
             
             return JsonResponse({"success": True, "message": "创建成功", "id": html_page.id})
         except Exception as e:
