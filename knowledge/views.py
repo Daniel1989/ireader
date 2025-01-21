@@ -64,13 +64,13 @@ def create(request):
             title = data.get('title')
             html = data.get('content')
             content = ""
-            text = exact(html)
             # Create the object and store the id
             html_page = HtmlPage.objects.create(url=url, title=title, html=html, text=text, summary=content)
-            parse_html_page.delay(html_page.id, text)
 
             def async_parse():
                 try:
+                    text = exact(html)
+                    parse_html_page.delay(html_page.id, text)
                     # Process vectors
                     text_splitter = RecursiveCharacterTextSplitter(
                         chunk_size=1000,
