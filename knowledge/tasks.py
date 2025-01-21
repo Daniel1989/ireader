@@ -125,6 +125,9 @@ def parse_html_page(self, page_id):
                 })
 
         # Store in Lance DB
+        print("##########################")
+        print(submissions)
+        print("##########################")
         updateOrCreateTable(submissions)
 
         # Store vector results in chunks
@@ -136,4 +139,6 @@ def parse_html_page(self, page_id):
     except Exception as e:
         logger.error(f"Task failed: {str(e)}")
         # Keep status as PROCESSING on retry
-        raise self.retry(exc=e, countdown=60) 
+        # raise self.retry(exc=e, countdown=60) 
+
+

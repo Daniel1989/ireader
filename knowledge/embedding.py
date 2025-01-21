@@ -78,6 +78,9 @@ def updateOrCreateTable(data):
         data = data
         tbl.add(data)
     else:
+        print("@@@@@@@@@@@@@@@@@@")
+        print(data)
+        print("@@@@@@@@@@@@@@@@@@")
         # Check if we have write permissions for the database location
         if not os.access(os.path.dirname(uri), os.W_OK):
             logger.error(f"No write permission for database location: {uri}")
