@@ -64,12 +64,12 @@ def create(request):
             title = data.get('title')
             html = data.get('content')
             content = ""
-            text = exact(html)
             # Create the object and store the id
-            html_page = HtmlPage.objects.create(url=url, title=title, html=html, text=text, summary=content)
-            parse_html_page.delay(html_page.id, text)
+            html_page = HtmlPage.objects.create(url=url, title=title, html=html, text='', summary=content)
             def async_parse():
                 try:
+                    text = exact(html)
+                    parse_html_page.delay(html_page.id, text)
                     # Process vectors
                     text_splitter = RecursiveCharacterTextSplitter(
                         chunk_size=1000,
@@ -85,7 +85,7 @@ def create(request):
                     submissions = []
                     print("texts lengths", len(texts))
                     print("contents lengths", len(contents))
-                    with ThreadPoolExecutor() as executor:
+                    with ThreadPoolExecutor(max_workers=1) as executor:
                         futures = [executor.submit(llm_create_embedding, text) for text in contents]
                         vector_values = [future.result() for future in as_completed(futures)]
 
@@ -128,7 +128,6 @@ def create(request):
                         size = 500
                         chunks = [vectors[i * size:(i + 1) * size] for i in range(math.ceil(len(vectors) / size))]
                         storeVectorResult(chunks, html_page.url)
-                    
                 except Exception as e:
                     logger.error(f"Async parsing failed for HtmlPage {html_page.id}: {str(e)}")
 
