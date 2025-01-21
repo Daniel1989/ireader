@@ -25,7 +25,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import uuid
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+import threading
 
 from knowledge.prompts import (
     get_idea_generation_prompt,
@@ -69,64 +69,73 @@ def create(request):
             html_page = HtmlPage.objects.create(url=url, title=title, html=html, text=text, summary=content)
             parse_html_page.delay(html_page.id, text)
 
-            # Process vectors
-            # text_splitter = RecursiveCharacterTextSplitter(
-            #     chunk_size=1000,
-            #     chunk_overlap=20,
-            #     length_function=len,
-            #     separators=["\n\n", "\n", " ", ".", ",", "\u200b", "\uff0c", "\u3001", "\uff0e", "\u3002", ""]
-            # )
-            
-            # texts = text_splitter.create_documents([text])
-            # contents = [text.page_content for text in texts]
-            
-            # vectors = []
-            # submissions = []
-            # print("texts lengths", len(texts))
-            # print("contents lengths", len(contents))
-            # with ThreadPoolExecutor() as executor:
-            #     futures = [executor.submit(llm_create_embedding, text) for text in contents]
-            #     vector_values = [future.result() for future in as_completed(futures)]
-
-            #     for index, vector in enumerate(vector_values):
-            #         vector_id = uuid.uuid4()
-            #         text_chunk = contents[index]
-            #         embedding = vector.data[0].embedding
+            def async_parse():
+                try:
+                    # Process vectors
+                    text_splitter = RecursiveCharacterTextSplitter(
+                        chunk_size=1000,
+                        chunk_overlap=20,
+                        length_function=len,
+                        separators=["\n\n", "\n", " ", ".", ",", "\u200b", "\uff0c", "\u3001", "\uff0e", "\u3002", ""]
+                    )
                     
-            #         # Save to Vector model (simplified)
-            #         Vector.objects.create(
-            #             html_page=html_page,
-            #             vector_id=vector_id
-            #         )
+                    texts = text_splitter.create_documents([text])
+                    contents = [text.page_content for text in texts]
                     
-            #         # Prepare data for Lance DB
-            #         vector_record = {
-            #             "id": str(vector_id),
-            #             "values": embedding,
-            #             "metadata": {
-            #                 "text": text_chunk,
-            #                 "url": html_page.url,
-            #                 "title": html_page.title,
-            #                 "description": html_page.summary[:200],
-            #             }
-            #         }
-            #         vectors.append(vector_record)
-            #         submissions.append({
-            #             "id": str(vector_id),
-            #             "text": text_chunk,
-            #             "url": html_page.url,
-            #             "title": html_page.title,
-            #             "description": html_page.summary[:200],
-            #             "vector": embedding
-            #         })
+                    vectors = []
+                    submissions = []
+                    print("texts lengths", len(texts))
+                    print("contents lengths", len(contents))
+                    with ThreadPoolExecutor() as executor:
+                        futures = [executor.submit(llm_create_embedding, text) for text in contents]
+                        vector_values = [future.result() for future in as_completed(futures)]
 
-            #     # Store in Lance DB
-            #     updateOrCreateTable(submissions)
+                        for index, vector in enumerate(vector_values):
+                            vector_id = uuid.uuid4()
+                            text_chunk = contents[index]
+                            embedding = vector.data[0].embedding
+                            
+                            # Save to Vector model (simplified)
+                            Vector.objects.create(
+                                html_page=html_page,
+                                vector_id=vector_id
+                            )
+                            
+                            # Prepare data for Lance DB
+                            vector_record = {
+                                "id": str(vector_id),
+                                "values": embedding,
+                                "metadata": {
+                                    "text": text_chunk,
+                                    "url": html_page.url,
+                                    "title": html_page.title,
+                                    "description": html_page.summary[:200],
+                                }
+                            }
+                            vectors.append(vector_record)
+                            submissions.append({
+                                "id": str(vector_id),
+                                "text": text_chunk,
+                                "url": html_page.url,
+                                "title": html_page.title,
+                                "description": html_page.summary[:200],
+                                "vector": embedding
+                            })
 
-            #     # Store vector results in chunks
-            #     size = 500
-            #     chunks = [vectors[i * size:(i + 1) * size] for i in range(math.ceil(len(vectors) / size))]
-            #     storeVectorResult(chunks, html_page.url)
+                        # Store in Lance DB
+                        updateOrCreateTable(submissions)
+
+                        # Store vector results in chunks
+                        size = 500
+                        chunks = [vectors[i * size:(i + 1) * size] for i in range(math.ceil(len(vectors) / size))]
+                        storeVectorResult(chunks, html_page.url)
+                    
+                except Exception as e:
+                    logger.error(f"Async parsing failed for HtmlPage {html_page.id}: {str(e)}")
+
+            thread = threading.Thread(target=async_parse)
+            thread.daemon = True  # Ensures the thread won't prevent the program from exiting
+            thread.start()
             
             return JsonResponse({"success": True, "message": "创建成功", "id": html_page.id})
         except Exception as e:
