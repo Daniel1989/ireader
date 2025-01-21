@@ -19,7 +19,7 @@ export const streamChat = async function (message: string, handleChat: any, atta
     window.addEventListener(ABORT_STREAM_EVENT, stopListener);
 
     // 与服务端的交互
-    await fetchEventSource(`http://localhost:8000/kl/chat`, {
+    await fetchEventSource(`${window.location.origin}/kl/chat`, {
       method: "POST",
       body: JSON.stringify({ message, attachments }),
       headers: {
