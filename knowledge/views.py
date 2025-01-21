@@ -120,7 +120,6 @@ def create(request):
                         "vector": embedding
                     })
 
-                print("submissions", submissions)
                 # Store in Lance DB
                 updateOrCreateTable(submissions)
 

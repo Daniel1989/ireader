@@ -69,16 +69,6 @@ def create_embedding(text):
 
 def check_table_exist(name):
     logger.info(f"11 Attempting to update or create table: {name}")
-    all_tables = []
-    offset = 0
-    batch_size = 100
-    while True:
-        tables = db.list_tables(offset=offset, limit=batch_size)
-        if not tables:
-            break
-        all_tables.extend(tables)
-        offset += batch_size
-
     tables = db.table_names()
     logger.info(f"22 Attempting to update or create table: {name}")
     print(f"tables name: {tables}")
