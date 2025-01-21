@@ -11,4 +11,5 @@ urlpatterns = [
     path('conversation/create/', views.create_conversation, name='create_conversation'),
     path('conversation/<int:conversation_id>/chat/', views.chat_with_history, name='chat_with_history'),
     path('conversation/<int:conversation_id>/history/', views.get_conversation_history, name='get_conversation_history'),
+    path('init', views.init, name='init'),
 ]

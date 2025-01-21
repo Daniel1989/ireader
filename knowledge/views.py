@@ -26,12 +26,17 @@ from celery.exceptions import OperationalError
 from redis.exceptions import ConnectionError, TimeoutError, RedisError
 import redis
 from django.conf import settings
+import hashlib
+from django.utils.timezone import now as timezone_now
+
 
 from knowledge.prompts import (
     get_idea_generation_prompt,
     get_hn_comment_check_prompt,
     get_product_idea_check_prompt
 )
+
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -282,3 +287,20 @@ def get_conversation_history(request, conversation_id):
             "success": False,
             "message": "对话不存在"
         })
+    
+def generate_hash(input_string):
+    today_str = timezone_now().strftime('%Y-%m-%d')
+    salted_input = input_string + today_str
+    hash_object = hashlib.sha256()
+    hash_object.update(salted_input.encode('utf-8'))
+    hash_hex = hash_object.hexdigest()
+    return hash_hex
+
+def init(request):
+    token = request.GET.get('tokendt')
+    if token is not None and len(token) > 3:
+        response = HttpResponse("Cookie has been set.")
+        cookie_value = generate_hash(token)
+        response.set_cookie('tokendt', cookie_value, max_age=3600 * 24, httponly=True)  # Expires in 1 hour
+        return response
+    return HttpResponseForbidden("请登录")
