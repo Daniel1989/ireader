@@ -82,7 +82,8 @@ def create(request):
             
             vectors = []
             submissions = []
-            
+            print("texts lengths", len(texts))
+            print("contents lengths", len(contents))
             with ThreadPoolExecutor() as executor:
                 futures = [executor.submit(llm_create_embedding, text) for text in contents]
                 vector_values = [future.result() for future in as_completed(futures)]

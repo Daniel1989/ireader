@@ -79,7 +79,6 @@ def check_table_exist(name):
         all_tables.extend(tables)
         offset += batch_size
 
-    print("all_tables", all_tables)
     tables = db.table_names()
     logger.info(f"22 Attempting to update or create table: {name}")
     print(f"tables name: {tables}")
