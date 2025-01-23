@@ -12,6 +12,8 @@ from knowledge.prompts import (
     get_summary_prompt,
     get_chat_context_prompt
 )
+from knowledge.models import  Conversation, Message
+
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -123,30 +125,66 @@ def chat(content):
     return completion.choices[0].message.content
 
 
-def stream_chat(content):
+def stream_chat(content, selected_page_ids=None, history=None, conversation=None):
     uid = str(uuid.uuid4())
     try:
         # First, get relevant context from vector search
         query_vector = create_embedding(content)
         embedding = query_vector.data[0].embedding
-        context_texts, scores, source_documents, references = vectorSearch(embedding)
+        
+        # Pass selected_page_ids to vectorSearch if provided
+        context_texts, scores, source_documents, references = vectorSearch(
+            embedding, 
+            page_ids=selected_page_ids if selected_page_ids else None
+        )
         
         # Format context for the prompt
         context_str = "\n\n".join(context_texts) if context_texts else ""
         
         # Create prompt with context
         prompt_with_context = get_chat_context_prompt(context_str, content)
-        logger.info(f"Streaming chat with context. Query: {content[:100]}...")
+        
+        # Add history to the messages if provided
+        history = [{"role": item.role, "content": item.content} for item in history]
+        messages = history if len(history) > 0 else [{"role": "system", "content": "You are a helpful assistant."}]
+        messages.append({"role": Message.Role.USER, "content": prompt_with_context})
         
         # Format references for the response
         formatted_refs = []
-        for ref in references:
-            formatted_refs.append({
-                "url": ref["url"],
-                "title": ref["title"],
-                "similarity": f"{ref['similarity']:.2%}"
-            })
+        # Track unique documents by URL
+        unique_refs = {}
         
+        for ref in references:
+            url = ref["url"]
+            if url in unique_refs:
+                # Update similarity if higher
+                if ref["similarity"] > unique_refs[url]["similarity"]:
+                    unique_refs[url]["similarity"] = ref["similarity"]
+            else:
+                unique_refs[url] = {
+                    "url": url,
+                    "title": ref["title"],
+                    "similarity": ref["similarity"],
+                    "distance": ref["distance"]
+                }
+        
+        # Convert to list and format similarity scores
+        formatted_refs = [
+            {**ref, "similarity": f"{ref['similarity']:.2%}"} 
+            for ref in unique_refs.values()
+        ]
+        
+        # 创建一个新的message对象，用于保存这次的llm返回的消息
+        try:
+            message = Message.objects.create(
+                conversation=conversation,
+                role=Message.Role.ASSISTANT,
+                content="",  # 初始化为空字符串，后续流式响应会逐步填充
+                references=formatted_refs
+            )
+        except Conversation.DoesNotExist:
+            logger.error("No conversation found to save message")
+
         # Stream the response
         for chunk in client.chat.completions.create(
                 model=model_name,
@@ -154,17 +192,22 @@ def stream_chat(content):
                 stream=True,
                 top_p=0.8,
                 max_tokens=2048,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt_with_context}
-                ]
+                messages=messages
         ):
             res = chunk.choices[0].delta.content
+            if res:  # Only save if there's content in the response
+                try:
+                    message.content += res
+                    message.references = formatted_refs
+                    message.save()
+                except Message.DoesNotExist:
+                    print("Message does not exist")
+                    logger.error(f"Error saving streaming message: {str(e)}")
             if chunk.choices[0].finish_reason == 'stop':
                 data = json.dumps(dict(
                     textResponse=res, 
                     uuid=chunk.id, 
-                    sources=formatted_refs,  # Use formatted references instead of source_documents
+                    sources=formatted_refs,
                     type='finalizeResponseStream', 
                     close=True, 
                     error=False
@@ -173,7 +216,7 @@ def stream_chat(content):
                 data = json.dumps(dict(
                     textResponse=res, 
                     uuid=chunk.id, 
-                    sources=formatted_refs,  # Use formatted references instead of source_documents
+                    sources=formatted_refs,
                     type='textResponseChunk', 
                     close=False, 
                     error=False

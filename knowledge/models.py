@@ -127,8 +127,8 @@ class Conversation(CreationModificationDateMixin):
 
 class Message(CreationModificationDateMixin):
     class Role(models.TextChoices):
-        USER = 'USER', '用户'
-        ASSISTANT = 'ASSISTANT', '助手'
+        USER = 'user', '用户'
+        ASSISTANT = 'assistant', '助手'
 
     conversation = models.ForeignKey(
         Conversation, 

@@ -6,16 +6,15 @@ import { Checkbox, Divider, List, Skeleton, Tooltip } from 'antd';
 import InfiniteScroll from 'react-infinite-scroll-component';
 
 
-export default function WebPageList(props: { width: number }) {
-    const width = props.width
+export default function WebPageList(props: { width: number, onSelected: (ids: string[]) => void, selectedIds: string[] }) {
+    const {width, selectedIds = [], onSelected} = props
     const pageSize = 10;
     const [pageNo, setPageNo] = useState(0);
     const [hasMore, setHasMore] = useState(true);
-    const [data, setData] = useState<{ url: string, title: string; summary: string }[]>([]);
+    const [data, setData] = useState<{ url: string, title: string; summary: string, id: number }[]>([]);
     const [loading, setLoading] = useState(false);
 
     const loadMoreData = () => {
-        console.log("hahah")
         if (loading) {
             return;
         }
@@ -54,7 +53,13 @@ export default function WebPageList(props: { width: number }) {
                     renderItem={(item, index) => (
                         <List.Item>
                             <>
-                                <Checkbox className='mr-2 self-start' />
+                                <Checkbox className='mr-2 self-start' checked={selectedIds.includes(item.id.toString())} onChange={() => {
+                                    if (selectedIds.includes(item.id.toString())) {
+                                        onSelected(selectedIds.filter(id => id !== item.id.toString()));
+                                    } else {
+                                        onSelected([...selectedIds, item.id.toString()]);
+                                    }
+                                }}/>
                                 <List.Item.Meta
                                     avatar={null}
                                     title={<><a href={item.url} className='font-bold'>{item.title}</a></>}

@@ -141,7 +141,7 @@ def create(request):
 
     return JsonResponse({"success": False, "message": "只支持POST请求"})
 
-
+@csrf_exempt
 def page_list(request):
     page_size = request.GET.get("pageSize", 10)
     page_no = request.GET.get("pageNo", 1)
@@ -211,44 +211,15 @@ def gen_comment(comment):
         total += "\n" + gen_comment(item)[0]
     return total, commend_id
 
-# Add the custom renderer to the view
-@csrf_exempt
-def chatgpt(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        message = data.get('message')
-        response = StreamingHttpResponse(stream_chat(message), content_type="text/event-stream")
-        response['X-Accel-Buffering'] = 'no'  # Disable buffering in nginx
-        response['Cache-Control'] = 'no-cache'  # Ensure clients don't cache the data
-        return response
-    else:
-        return JsonResponse({"success": False, "message": "请求方式错误"})
-
 @csrf_exempt
 def create_conversation(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
+            # data = json.loads(request.body)
+            data = {}
             title = data.get('title', f'对话 {timezone_now().strftime("%Y-%m-%d %H:%M")}')
             
             conversation = Conversation.objects.create(title=title)
-            
-            # Add system message if provided
-            initial_message = data.get('message')
-            if initial_message:
-                Message.objects.create(
-                    conversation=conversation,
-                    role=Message.Role.USER,
-                    content=initial_message
-                )
-                
-                # Get AI response
-                response = stream_chat(initial_message)
-                Message.objects.create(
-                    conversation=conversation,
-                    role=Message.Role.ASSISTANT,
-                    content=response
-                )
             
             return JsonResponse({
                 "success": True, 
@@ -266,12 +237,23 @@ def create_conversation(request):
     return JsonResponse({"success": False, "message": "只支持POST请求"})
 
 @csrf_exempt
-def chat_with_history(request, conversation_id):
+def chat_with_history(request, conversation_id=None):
     if request.method == 'POST':
         try:
+            # Create new conversation if no id provided
+            # if conversation_id is None:
+            #     conversation = Conversation.objects.create()
+            # else:
+            #     conversation = Conversation.objects.get(id=conversation_id)
+
             conversation = Conversation.objects.get(id=conversation_id)
             data = json.loads(request.body)
             message = data.get('message')
+            selected_ids = data.get('selected_ids', [])  # Get selected HTML page IDs
+            
+            # Convert string IDs to integers if they're strings
+            if selected_ids:
+                selected_ids = [int(id) for id in selected_ids]
             
             # Save user message
             Message.objects.create(
@@ -282,18 +264,21 @@ def chat_with_history(request, conversation_id):
             
             # Get chat history
             history = Message.objects.filter(conversation=conversation).order_by('created')
-            history_text = "\n".join([
-                f"{'User' if msg.role == Message.Role.USER else 'Assistant'}: {msg.content}"
-                for msg in history
-            ])
-            
-            # Stream response with history context
+            # Stream response with history context and selected_ids
             response = StreamingHttpResponse(
-                stream_chat(message, history_text), 
+                stream_chat(
+                    message, 
+                    selected_page_ids=selected_ids,
+                    history=history,
+                    conversation=conversation
+                ), 
                 content_type="text/event-stream"
             )
             response['X-Accel-Buffering'] = 'no'
             response['Cache-Control'] = 'no-cache'
+            
+            # Add conversation ID to response headers
+            response['X-Conversation-ID'] = str(conversation.id)
             return response
             
         except Conversation.DoesNotExist:
@@ -352,3 +337,28 @@ def init(request):
         response.set_cookie('tokendt', cookie_value, max_age=3600 * 24, httponly=True)  # Expires in 1 hour
         return response
     return HttpResponseForbidden("请登录")
+
+@csrf_exempt
+def get_conversations(request):
+    if request.method == 'GET':
+        try:
+            conversations = Conversation.objects.all().order_by('-created')
+            data = [{
+                'id': conv.id,
+                'title': conv.title,
+                'created': conv.created.strftime("%Y-%m-%d %H:%M:%S")
+            } for conv in conversations]
+            
+            return JsonResponse({
+                "success": True,
+                "data": data
+            })
+            
+        except Exception as e:
+            logger.error(f"Error fetching conversations: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"获取对话列表失败: {str(e)}"
+            })
+    
+    return JsonResponse({"success": False, "message": "只支持GET请求"})

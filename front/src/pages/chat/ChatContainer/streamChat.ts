@@ -6,7 +6,7 @@ export const ABORT_STREAM_EVENT = "abort-chat-stream";
 const stopListenerList: (() => void)[] = [];
 
 
-export const streamChat = async function (message: string, handleChat: any, attachments = []) {
+export const streamChat = async function (message: string, handleChat: any, attachments = [], selectedIds = [], conversationId = '') {
     const ctrl = new AbortController();
     const token  = window.localStorage.getItem("anythingllm_authToken");
     const stopListener = () => {
@@ -19,9 +19,9 @@ export const streamChat = async function (message: string, handleChat: any, atta
     window.addEventListener(ABORT_STREAM_EVENT, stopListener);
 
     // 与服务端的交互
-    await fetchEventSource(`${window.location.origin}/kl/chat`, {
+    await fetchEventSource(`${window.location.origin.includes('localhost') ? 'http://127.0.0.1:8000' : window.location.origin}/kl/conversation/${conversationId}/chat`, {
       method: "POST",
-      body: JSON.stringify({ message, attachments }),
+      body: JSON.stringify({ message, attachments, selected_ids: selectedIds }),
       headers: {
         "Authorization": `Bearer ${token}` 
       },

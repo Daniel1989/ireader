@@ -50,13 +50,11 @@ def get_chat_context_prompt(context: str, question: str) -> str:
 1. If relevant context is provided, prioritize that information in your response
 2. If the context doesn't fully answer the question, combine context with your knowledge
 3. If no context is relevant, use your general knowledge to provide a helpful answer
-4. Always cite sources when using information from the provided context
-5. Be clear, concise, and accurate in your responses
+4. Be clear, concise, and accurate in your responses
 
 Format your response as:
 1. Direct answer to the question
-2. (Optional) Additional relevant details
-3. (If using context) Sources used, with relevance scores'''
+2. (Optional) Additional relevant details'''
 
     if context.strip():
         return f"""{base_prompt}

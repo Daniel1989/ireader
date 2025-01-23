@@ -30,11 +30,9 @@ class CookieCheckMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        token = request.headers.get('Authorization')
-
-        ip = self.get_client_ip(request)
-
-        if request.path == os.environ['WHITE_LIST_API_1'] or request.path == os.environ['WHITE_LIST_API_2']:
+        if request.META.get('HTTP_ORIGIN') == 'http://localhost:3000':
+            return response
+        if  request.path == os.environ['WHITE_LIST_API_1'] or request.path == os.environ['WHITE_LIST_API_2']:
             return response
 
         if 'tokendt' not in request.COOKIES:

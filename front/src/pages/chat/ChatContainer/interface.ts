@@ -4,4 +4,9 @@ export interface IMessage {
     avatar: string,
     pending: boolean,
     error?: string,
+    sources?: {
+        url: string, 
+        title: string, 
+        similarity: string,
+    }[]
 }

@@ -113,7 +113,7 @@ def distanceToSimilarity(distance: None | float):
     else:
         return 1.0 - distance
 
-def vectorSearch(query_vector):
+def vectorSearch(query_vector, page_ids=None):
     try:
         name = VECTOR_NAMESPACE
         logger.info(f"Starting vector search in table: {name}")
@@ -122,7 +122,8 @@ def vectorSearch(query_vector):
         tbl = db.open_table(name)
         logger.info(f"Successfully opened table: {name}")
         
-        result = tbl.search(query_vector).metric("cosine").limit(4).to_pandas()
+        # Get the base search results
+        result = tbl.search(query_vector).metric("cosine").limit(10).to_pandas()
         logger.info(f"Search completed. Found {len(result)} results")
         
         context_texts = []
@@ -131,7 +132,18 @@ def vectorSearch(query_vector):
         references = []  # New list for storing references
         
         logger.info("Processing search results...")
-        MIN_DISTANCE = 0.15
+        MIN_DISTANCE = 0.35  # Higher distance threshold for better quality matches
+        
+        # Get the HTML pages if we have page_ids
+        if page_ids:
+            from knowledge.models import HtmlPage, Vector
+            vector_ids = Vector.objects.filter(html_page_id__in=page_ids).values_list('vector_id', flat=True)
+            vector_ids = [str(vid) for vid in vector_ids]  # Convert UUIDs to strings
+            
+            # Filter results to only include vectors from selected pages
+            result = result[result['id'].isin(vector_ids)]
+            logger.info(f"Filtered to {len(result)} results from selected pages")
+        
         for index, row in result.iterrows():
             distance = row["_distance"]
             logger.info(f"Result {index + 1}: Distance = {distance}")
@@ -152,7 +164,8 @@ def vectorSearch(query_vector):
                 references.append({
                     "url": row["url"],
                     "title": row["title"],
-                    "similarity": similarity
+                    "similarity": similarity,
+                    "distance": distance
                 })
                 
                 logger.info(f"Added result {index + 1} with similarity score: {similarity}")
