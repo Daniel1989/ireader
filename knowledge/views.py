@@ -147,14 +147,16 @@ def page_list(request):
     page_no = request.GET.get("pageNo", 1)
     pages = HtmlPage.objects.all().order_by('-created')
     p = Paginator(pages, page_size)
-    target_page =p.page(page_no)
+    target_page = p.page(page_no)
     data = [{
         "id": item.id,
         "title": item.title,
         "url": item.url,
         "text": item.text,
         "summary": item.summary,
-        "created": item.created
+        "created": item.created,
+        "status": item.status,
+        "tags": [tag.name for tag in item.tags.all()]  # Get all tags for this page
     } for item in target_page.object_list]
     return JsonResponse({"success": True, "data": data, "total": p.count, "hasNext": target_page.has_next()})
 
