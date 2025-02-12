@@ -4,6 +4,7 @@ import axios from 'axios'; // For ES modules or frontend
 import { HOST } from '../../../constnat';
 import { Checkbox, Divider, List, Skeleton, Tooltip, Tag, Space } from 'antd';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import dayjs from 'dayjs';
 
 // Add status color mapping
 const statusColorMap = {
@@ -53,7 +54,8 @@ export default function WebPageList(props: { width: number, onSelected: (ids: st
         summary: string, 
         id: number,
         status: 'WAIT_PROCESS' | 'PROCESSING' | 'FINISH',
-        tags: string[]
+        tags: string[],
+        created: string
     }[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -164,6 +166,9 @@ export default function WebPageList(props: { width: number, onSelected: (ids: st
                                         <Space>
                                             <a href={item.url} className='font-bold'>{item.title}</a>
                                             <Tag color={statusColorMap[item.status]}>{statusTextMap[item.status]}</Tag>
+                                            <span className="text-gray-400 text-sm">
+                                                {dayjs(item.created).format('YYYY-MM-DD HH:mm')}
+                                            </span>
                                         </Space>
                                     }
                                     description={
