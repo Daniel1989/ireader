@@ -173,6 +173,29 @@ def vectorSearch(query_vector, page_ids=None):
             else:
                 logger.info(f"Skipped result {index + 1}: Distance {distance} below threshold {MIN_DISTANCE}")
         
+        # If no results found and we have page_ids, use original content as fallback
+        if len(context_texts) == 0 and page_ids:
+            logger.info("No vector search results found, falling back to original content")
+            from knowledge.models import HtmlPage
+            pages = HtmlPage.objects.filter(id__in=page_ids)
+            
+            for page in pages:
+                context_texts.append(page.text)
+                score.append(1.0)  # Full relevance for direct content
+                source_documents.append({
+                    "text": page.text,
+                    "url": page.url,
+                    "title": page.title,
+                    "description": page.summary[:200]
+                })
+                references.append({
+                    "url": page.url,
+                    "title": page.title,
+                    "similarity": 1.0,
+                    "distance": 0.0
+                })
+                logger.info(f"Added original content from page {page.id}: {page.title}")
+        
         logger.info(f"Vector search complete. Found {len(context_texts)} relevant matches")
         logger.info(f"Similarity scores: {score}")
         

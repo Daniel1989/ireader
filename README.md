@@ -10,3 +10,8 @@
 4. chat, search vector db, add to context, save chat history
 5. based on tags, daily search and show related articles
 6. 配置化，支持设置目标语言, 支持返回相似度多少的文案，支持接入llm
+
+## how to deploy
+1. 关闭之前的manage.py 和 celery进程
+2. 启动manage.py (nohup python manage.py runserver 0.0.0.0:7860 &) 
+3. 启动celery进程 (nohup celery -A celery_reader worker -l INFO &)
