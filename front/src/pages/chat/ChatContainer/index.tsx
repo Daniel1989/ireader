@@ -6,13 +6,28 @@ import { PauseOutlined, SendOutlined } from '@ant-design/icons';
 import { Empty, Input } from 'antd';
 import { useSearchParams } from 'react-router-dom';
 import { HOST } from '../../../constnat';
+import { useTranslation } from 'react-i18next';
+
+type TranslationKeys = 
+    | 'chat.error.load'
+    | 'chat.noMessages'
+    | 'chat.placeholder'
+    | 'chat.stop'
+    | 'chat.send';
 
 export default function ChatContainer(props: any) {
+  const { t } = useTranslation();
   const { selectedIds, conversationId } = props;
   const [messages, setMessages] = useState<any[]>([]);
   const [generating, setGenerating] = useState(false);
   const [input, setInput] = useState('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // Translation wrapper function with ts-ignore for type safety bypass
+  const translate = (key: TranslationKeys, params?: Record<string, any>) => {
+    // @ts-ignore: Suppress type checking for translation function
+    return t(key, params);
+  };
 
   let generatorTimeout: NodeJS.Timer;
 
@@ -34,10 +49,6 @@ export default function ChatContainer(props: any) {
       setGenerating(true);
       setMessages([...messages, { text: input, user: 'You' }, { text: '', pending: true, user: 'AI' }]);
       setInput('');
-      // Simulate a response from the bot or other user
-      // 优化聊天时滚动
-      // 优化聊天时再次发送
-      // 优化停止生成
       generatorTimeout = setTimeout(() => {
         streamChat(input, (values: any) => {
           if (values.type === "stopGeneration") {
@@ -55,7 +66,6 @@ export default function ChatContainer(props: any) {
               setGenerating(false);
             }
           }
-
         }, [], selectedIds, conversationId);
       }, 300);
     }
@@ -66,31 +76,34 @@ export default function ChatContainer(props: any) {
       try {
         const response = await fetch(`${HOST}/kl/conversation/${conversationId}/history`);
         const data = await response.json();
-        setMessages(data.conversation.messages.map((msg: any) => {
-          if (msg.role === 'assistant') {
-            return {
-              "sources": msg.references,
-              "type": "textResponseChunk",
-              "close": false,
-              "error": false,
-              "text": msg.content,
-              "pending": false,
-              "user": "AI"
+        if (data.success) {
+          setMessages(data.conversation.messages.map((msg: any) => {
+            if (msg.role === 'assistant') {
+              return {
+                "sources": msg.references,
+                "type": "textResponseChunk",
+                "close": false,
+                "error": false,
+                "text": msg.content,
+                "pending": false,
+                "user": "AI"
+              }
+            } else {
+              return {
+                "text": msg.content,
+                "user": "You"
+              }
             }
-          } else {
-            return {
-              "text": msg.content,
-              "user": "You"
-            }
-          }
-
-        }));
+          }));
+        }
       } catch (error) {
-        console.error('Error fetching conversation history:', error);
+        console.error(translate('chat.error.load'), error);
       }
     };
 
-    fetchConversationHistory();
+    if (conversationId) {
+      fetchConversationHistory();
+    }
   }, [conversationId]);
 
   useEffect(() => {
@@ -105,7 +118,6 @@ export default function ChatContainer(props: any) {
     }
   }, [messages.length])
 
-
   return (
     <>
       <div ref={chatContainerRef} className='h-full min-h-[85vh]' style={{ paddingRight: '14px', overflowY: 'scroll' }} >
@@ -113,7 +125,9 @@ export default function ChatContainer(props: any) {
           return (
             <Message message={msg} key={index} isLast={index === messages.length - 1} />
           )
-        }) : <div className='width-full h-full flex items-center justify-center'><Empty description="No messages yet" /></div>
+        }) : <div className='width-full h-full flex items-center justify-center'>
+          <Empty description={translate('chat.noMessages')} />
+        </div>
         }
       </div>
       <div style={{ display: 'flex', marginTop: '20px' }}>
@@ -121,14 +135,19 @@ export default function ChatContainer(props: any) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Type a message..."
+          placeholder={translate('chat.placeholder')}
           style={{ padding: '10px' }}
         />
-        <button onClick={sendMessage} style={{ padding: '10px 20px' }} >
+        <button 
+          onClick={generating ? stopGeneration : sendMessage} 
+          style={{ padding: '10px 20px' }}
+          title={generating ? translate('chat.stop') : translate('chat.send')}
+        >
           {
-            generating ? <PauseOutlined className='text-3xl' onClick={stopGeneration} /> : <SendOutlined className={input.trim() === '' ? 'text-3xl opacity-50 cursor-not-allowed' : 'text-3xl'} />
+            generating ? 
+              <PauseOutlined className='text-3xl' /> : 
+              <SendOutlined className={input.trim() === '' ? 'text-3xl opacity-50 cursor-not-allowed' : 'text-3xl'} />
           }
-
         </button>
       </div>
     </>

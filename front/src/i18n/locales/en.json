@@ -1,0 +1,35 @@
+{
+  "wordcloud": {
+    "title": "Knowledge Tag Cloud",
+    "generateButton": "Generate User Persona",
+    "personaTitle": "Generated User Persona",
+    "translateButton": "Translate to Chinese",
+    "loading": "Loading..."
+  },
+  "chat": {
+    "title": "Chat",
+    "placeholder": "Type your message here...",
+    "send": "Send",
+    "stop": "Stop Generation",
+    "newChat": "New Chat",
+    "loading": "Loading...",
+    "noMessages": "No messages yet. Start a conversation!",
+    "thinking": "AI is thinking...",
+    "you": "You",
+    "assistant": "AI Assistant",
+    "similarity": "Similarity: {{value}}",
+    "error": {
+      "send": "Failed to send message",
+      "load": "Failed to load chat history",
+      "create": "Failed to create new chat"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": {
+      "fetchTags": "Error fetching tags",
+      "generatePersona": "Error generating persona",
+      "translate": "Error translating text"
+    }
+  }
+} 

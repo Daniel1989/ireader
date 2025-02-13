@@ -12,4 +12,7 @@ urlpatterns = [
     path('conversation/<int:conversation_id>/history', views.get_conversation_history, name='get_conversation_history'),
     path('init', views.init, name='init'),
     path('conversations', views.get_conversations, name='get_conversations'),
+    path('tags/stats', views.get_tag_stats, name='tag_stats'),
+    path('tags/persona', views.generate_persona, name='generate_persona'),
+    path('translate', views.translate, name='translate'),
 ]

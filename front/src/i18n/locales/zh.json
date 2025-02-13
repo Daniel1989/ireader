@@ -1,0 +1,35 @@
+{
+  "wordcloud": {
+    "title": "知识标签云",
+    "generateButton": "生成用户画像",
+    "personaTitle": "生成的用户画像",
+    "translateButton": "翻译成中文",
+    "loading": "加载中..."
+  },
+  "chat": {
+    "title": "聊天",
+    "placeholder": "请输入您的消息...",
+    "send": "发送",
+    "stop": "停止生成",
+    "newChat": "新建聊天",
+    "loading": "加载中...",
+    "noMessages": "暂无消息。开始一个新的对话吧！",
+    "thinking": "AI思考中...",
+    "you": "你",
+    "assistant": "AI助手",
+    "similarity": "相似度：{{value}}",
+    "error": {
+      "send": "发送消息失败",
+      "load": "加载聊天记录失败",
+      "create": "创建新聊天失败"
+    }
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": {
+      "fetchTags": "获取标签失败",
+      "generatePersona": "生成用户画像失败",
+      "translate": "翻译失败"
+    }
+  }
+} 

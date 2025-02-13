@@ -99,4 +99,19 @@ def get_hn_comment_check_prompt(story_text: str) -> str:
     return f"""You are a Hacker news reader bot. Check the following story if is asking for people to show their recent ideas. just return 'Yes' or 'No'.\n the story is:\n{story_text}"""
 
 def get_product_idea_check_prompt(comment: str) -> str:
-    return f"""You are a Hacker news reader bot. Check the following comment if is describing a product or an idea about hardware or software or applications. just return 'Yes' or 'No'.\n the comment is:\n{comment}""" 
+    return f"""You are a Hacker news reader bot. Check the following comment if is describing a product or an idea about hardware or software or applications. just return 'Yes' or 'No'.\n the comment is:\n{comment}"""
+
+def get_persona_generation_prompt(tag_stats):
+    tags_info = "\n".join([f"- {tag['name']} (appears {tag['count']} times)" for tag in tag_stats])
+    return f"""Based on the following tag statistics from a user's knowledge base:
+
+{tags_info}
+
+Generate a detailed user persona that includes:
+1. Background and Demographics
+2. Professional Role and Expertise
+3. Main Interests and Focus Areas
+4. Learning Goals and Knowledge Seeking Patterns
+5. Potential Use Cases and Needs
+
+Please provide a comprehensive analysis of who this person might be, based on their knowledge interests as reflected in these tags.""" 

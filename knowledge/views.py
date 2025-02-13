@@ -5,8 +5,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse, StreamingHttpResponse
 import json
 
-from knowledge.llm import exact, chat, stream_chat, llm_create_embedding
-from knowledge.models import HtmlPage, HNIdeas, Conversation, Message, Vector
+from knowledge.llm import exact, chat, stream_chat, llm_create_embedding, translate_text
+from knowledge.models import HtmlPage, HNIdeas, Conversation, Message, Vector, Tag
 
 from django.core.paginator import Paginator
 
@@ -30,10 +30,12 @@ import threading
 from knowledge.prompts import (
     get_idea_generation_prompt,
     get_hn_comment_check_prompt,
-    get_product_idea_check_prompt
+    get_product_idea_check_prompt,
+    get_persona_generation_prompt
 )
 
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.db.models import Count
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -364,3 +366,88 @@ def get_conversations(request):
             })
     
     return JsonResponse({"success": False, "message": "只支持GET请求"})
+
+@csrf_exempt
+def get_tag_stats(request):
+    if request.method == 'GET':
+        try:
+            # Get all tags with their counts
+            tag_stats = Tag.objects.values('name').annotate(
+                count=Count('id')
+            ).order_by('-count')
+            
+            return JsonResponse({
+                "success": True,
+                "data": list(tag_stats)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error fetching tag statistics: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"获取标签统计失败: {str(e)}"
+            })
+    
+    return JsonResponse({"success": False, "message": "只支持GET请求"})
+
+@csrf_exempt
+def generate_persona(request):
+    if request.method == 'GET':
+        try:
+            # Get tag statistics
+            tag_stats = Tag.objects.values('name').annotate(
+                count=Count('id')
+            ).order_by('-count')
+            
+            # Generate prompt with tag statistics
+            prompt = get_persona_generation_prompt(tag_stats)
+            
+            # Get persona from LLM
+            persona = chat(prompt)
+            
+            return JsonResponse({
+                "success": True,
+                "data": {
+                    "persona": persona,
+                    "tags": list(tag_stats)
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error generating persona: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"生成用户画像失败: {str(e)}"
+            })
+    
+    return JsonResponse({"success": False, "message": "只支持GET请求"})
+
+@csrf_exempt
+def translate(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            text = data.get('text')
+            target_language = data.get('target_language', 'Chinese')
+            
+            if not text:
+                return JsonResponse({
+                    "success": False,
+                    "message": "文本不能为空"
+                })
+            
+            translation = translate_text(text, target_language)
+            
+            return JsonResponse({
+                "success": True,
+                "translation": translation
+            })
+            
+        except Exception as e:
+            logger.error(f"Error translating text: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"翻译失败: {str(e)}"
+            })
+    
+    return JsonResponse({"success": False, "message": "只支持POST请求"})
