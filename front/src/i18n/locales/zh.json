@@ -1,4 +1,8 @@
 {
+  "nav": {
+    "chat": "聊天",
+    "tagCloud": "标签云"
+  },
   "wordcloud": {
     "title": "知识标签云",
     "generateButton": "生成用户画像",

@@ -1,4 +1,8 @@
 {
+  "nav": {
+    "chat": "Chat",
+    "tagCloud": "Tag Cloud"
+  },
   "wordcloud": {
     "title": "Knowledge Tag Cloud",
     "generateButton": "Generate User Persona",

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { HOST } from '../../constnat';
 import axios from 'axios';
 import ReactWordcloud from 'react-wordcloud';
@@ -38,9 +38,26 @@ export default function WordCloud() {
     const [translating, setTranslating] = useState(false);
     const [translatedPersona, setTranslatedPersona] = useState<string>('');
 
-    //@ts-ignore
-    const translate = (key: TranslationKeys) => t(key);
+    // Translation wrapper function with ts-ignore for type safety bypass
+    const translate = (key: TranslationKeys, params?: Record<string, any>) => {
+        // @ts-ignore: Suppress type checking for translation function
+        return t(key, params);
+    };
 
+    // Memoize word cloud options
+    const options = useMemo(() => ({
+        rotations: 2,
+        rotationAngles: [-90, 0] as [number, number],
+        fontSizes: [20, 60] as [number, number],
+        padding: 2,
+        enableTooltip: false,
+        deterministic: true, // Makes the layout consistent between renders
+        spiral: 'archimedean' as const,
+        scale: 'sqrt' as const,
+        random: () => 0.5, 
+    }), []); // Empty dependency array as these options never change
+
+    // Fetch tags only once when component mounts
     useEffect(() => {
         const fetchTags = async () => {
             try {
@@ -61,9 +78,10 @@ export default function WordCloud() {
         };
 
         fetchTags();
-    }, [t]);
+        // Empty dependency array means this effect runs once on mount
+    }, []);
 
-    const handleGeneratePersona = async () => {
+    const handleGeneratePersona = useCallback(async () => {
         setGeneratingPersona(true);
         setTranslatedPersona(''); // Reset translation when generating new persona
         try {
@@ -76,9 +94,9 @@ export default function WordCloud() {
         } finally {
             setGeneratingPersona(false);
         }
-    };
+    }, []);
 
-    const handleTranslate = async () => {
+    const handleTranslate = useCallback(async () => {
         if (!persona) return;
         
         setTranslating(true);
@@ -96,14 +114,7 @@ export default function WordCloud() {
         } finally {
             setTranslating(false);
         }
-    };
-
-    const options = {
-        rotations: 2,
-        rotationAngles: [-90, 0] as [number, number],
-        fontSizes: [20, 60] as [number, number],
-        padding: 2,
-    };
+    }, [persona]);
 
     if (loading) {
         return (
