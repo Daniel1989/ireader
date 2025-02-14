@@ -31,7 +31,8 @@ from knowledge.prompts import (
     get_idea_generation_prompt,
     get_hn_comment_check_prompt,
     get_product_idea_check_prompt,
-    get_persona_generation_prompt
+    get_persona_generation_prompt,
+    get_recommendations_prompt
 )
 
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
@@ -448,6 +449,39 @@ def translate(request):
             return JsonResponse({
                 "success": False,
                 "message": f"翻译失败: {str(e)}"
+            })
+    
+    return JsonResponse({"success": False, "message": "只支持POST请求"})
+
+@csrf_exempt
+def generate_recommendations(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            persona = data.get('persona')
+            
+            if not persona:
+                return JsonResponse({
+                    "success": False,
+                    "message": "用户画像不能为空"
+                })
+            
+            # Generate prompt with persona
+            prompt = get_recommendations_prompt(persona)
+            
+            # Get recommendations from LLM
+            recommendations = chat(prompt)
+            
+            return JsonResponse({
+                "success": True,
+                "recommendations": recommendations
+            })
+            
+        except Exception as e:
+            logger.error(f"Error generating recommendations: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"生成推荐失败: {str(e)}"
             })
     
     return JsonResponse({"success": False, "message": "只支持POST请求"})

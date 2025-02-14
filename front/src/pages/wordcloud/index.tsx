@@ -23,10 +23,13 @@ type TranslationKeys =
     | 'wordcloud.generateButton'
     | 'wordcloud.personaTitle'
     | 'wordcloud.translateButton'
+    | 'wordcloud.recommendButton'
+    | 'wordcloud.recommendTitle'
     | 'wordcloud.loading'
     | 'common.loading'
     | 'common.error.fetchTags'
     | 'common.error.generatePersona'
+    | 'common.error.generateRecommendations'
     | 'common.error.translate';
 
 export default function WordCloud() {
@@ -37,6 +40,8 @@ export default function WordCloud() {
     const [generatingPersona, setGeneratingPersona] = useState(false);
     const [translating, setTranslating] = useState(false);
     const [translatedPersona, setTranslatedPersona] = useState<string>('');
+    const [recommendations, setRecommendations] = useState<string>('');
+    const [generatingRecommendations, setGeneratingRecommendations] = useState(false);
 
     // Translation wrapper function with ts-ignore for type safety bypass
     const translate = (key: TranslationKeys, params?: Record<string, any>) => {
@@ -50,12 +55,21 @@ export default function WordCloud() {
         rotationAngles: [-90, 0] as [number, number],
         fontSizes: [20, 60] as [number, number],
         padding: 2,
-        enableTooltip: false,
+        enableTooltip: true,
         deterministic: true, // Makes the layout consistent between renders
         spiral: 'archimedean' as const,
         scale: 'sqrt' as const,
-        random: () => 0.5, 
-    }), []); // Empty dependency array as these options never change
+        random: () => 0.5, // Consistent random numbers for deterministic layout
+        tooltipOptions: {
+            background: 'white',
+            padding: '8px',
+            borderRadius: '4px',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            fontSize: '14px',
+            color: '#1f2937'
+        }
+    }), []);
 
     // Fetch tags only once when component mounts
     useEffect(() => {
@@ -84,6 +98,7 @@ export default function WordCloud() {
     const handleGeneratePersona = useCallback(async () => {
         setGeneratingPersona(true);
         setTranslatedPersona(''); // Reset translation when generating new persona
+        setRecommendations(''); // Reset recommendations when generating new persona
         try {
             const response = await axios.get(`${HOST}/kl/tags/persona`);
             if (response.data.success) {
@@ -116,6 +131,25 @@ export default function WordCloud() {
         }
     }, [persona]);
 
+    const handleGetRecommendations = useCallback(async () => {
+        if (!persona) return;
+        
+        setGeneratingRecommendations(true);
+        try {
+            const response = await axios.post(`${HOST}/kl/tags/recommendations`, {
+                persona: persona.persona
+            });
+            
+            if (response.data.success) {
+                setRecommendations(response.data.recommendations);
+            }
+        } catch (error) {
+            console.error(translate('common.error.generateRecommendations'), error);
+        } finally {
+            setGeneratingRecommendations(false);
+        }
+    }, [persona]);
+
     if (loading) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -142,7 +176,7 @@ export default function WordCloud() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Word Cloud Section */}
                     <div className="h-[500px] border rounded-lg shadow-lg bg-white">
-                        <ReactWordcloud words={words} options={options} />
+                        <ReactWordcloud words={words} options={options as any} />
                     </div>
 
                     {/* Persona Section */}
@@ -153,14 +187,24 @@ export default function WordCloud() {
                                     title={(
                                         <div className="flex justify-between items-center">
                                             <span>{translate('wordcloud.personaTitle')}</span>
-                                            <Button
-                                                onClick={handleTranslate}
-                                                loading={translating}
-                                                disabled={!persona}
-                                                type="default"
-                                            >
-                                                {translate('wordcloud.translateButton')}
-                                            </Button>
+                                            <Space>
+                                                <Button
+                                                    onClick={handleTranslate}
+                                                    loading={translating}
+                                                    disabled={!persona}
+                                                    type="default"
+                                                >
+                                                    {translate('wordcloud.translateButton')}
+                                                </Button>
+                                                <Button
+                                                    onClick={handleGetRecommendations}
+                                                    loading={generatingRecommendations}
+                                                    disabled={!persona}
+                                                    type="default"
+                                                >
+                                                    {translate('wordcloud.recommendButton')}
+                                                </Button>
+                                            </Space>
                                         </div>
                                     )}
                                     className="h-[500px] overflow-y-auto"
@@ -177,6 +221,17 @@ export default function WordCloud() {
                                         <div className="prose max-w-none prose-headings:text-gray-800 prose-p:text-gray-700 prose-strong:text-gray-800 prose-li:text-gray-700">
                                             <ReactMarkdown>{persona.persona}</ReactMarkdown>
                                         </div>
+                                        {recommendations && (
+                                            <>
+                                                <Divider />
+                                                <div>
+                                                    <h3 className="text-lg font-semibold mb-4">{translate('wordcloud.recommendTitle')}</h3>
+                                                    <div className="prose max-w-none prose-headings:text-gray-800 prose-p:text-gray-700 prose-strong:text-gray-800 prose-li:text-gray-700">
+                                                        <ReactMarkdown>{recommendations}</ReactMarkdown>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
                                     </Space>
                                 </Card>
                             </>

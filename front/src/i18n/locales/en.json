@@ -8,6 +8,8 @@
     "generateButton": "Generate User Persona",
     "personaTitle": "Generated User Persona",
     "translateButton": "Translate to Chinese",
+    "recommendButton": "Get Recommendations",
+    "recommendTitle": "Recommended Websites",
     "loading": "Loading..."
   },
   "chat": {
@@ -33,6 +35,7 @@
     "error": {
       "fetchTags": "Error fetching tags",
       "generatePersona": "Error generating persona",
+      "generateRecommendations": "Error generating recommendations",
       "translate": "Error translating text"
     }
   }

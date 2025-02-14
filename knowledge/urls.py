@@ -14,5 +14,6 @@ urlpatterns = [
     path('conversations', views.get_conversations, name='get_conversations'),
     path('tags/stats', views.get_tag_stats, name='tag_stats'),
     path('tags/persona', views.generate_persona, name='generate_persona'),
+    path('tags/recommendations', views.generate_recommendations, name='generate_recommendations'),
     path('translate', views.translate, name='translate'),
 ]

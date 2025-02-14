@@ -114,4 +114,15 @@ Generate a detailed user persona that includes:
 4. Learning Goals and Knowledge Seeking Patterns
 5. Potential Use Cases and Needs
 
-Please provide a comprehensive analysis of who this person might be, based on their knowledge interests as reflected in these tags.""" 
+Please provide a comprehensive analysis of who this person might be, based on their knowledge interests as reflected in these tags."""
+
+def get_recommendations_prompt(persona: str) -> str:
+    return f"""Based on the following user persona, recommend 5-7 specific websites, tools, or resources that would be valuable for this user. For each recommendation, include:
+1. Name/URL
+2. Brief description (1-2 sentences)
+3. Why it's relevant to this user's interests and needs
+
+User Persona:
+{persona}
+
+Format your response in Markdown, with each recommendation as a bullet point containing the name/URL in bold, followed by the description and relevance.""" 
