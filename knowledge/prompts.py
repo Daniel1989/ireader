@@ -125,4 +125,64 @@ def get_recommendations_prompt(persona: str) -> str:
 User Persona:
 {persona}
 
-Format your response in Markdown, with each recommendation as a bullet point containing the name/URL in bold, followed by the description and relevance.""" 
+Format your response in Markdown, with each recommendation as a bullet point containing the name/URL in bold, followed by the description and relevance."""
+
+def get_combined_persona_and_recommendations_prompt(tag_stats):
+    tags_info = "\n".join([f"- {tag['name']} (appears {tag['count']} times)" for tag in tag_stats])
+    return f"""Based on the following tag statistics from a user's knowledge base:
+
+{tags_info}
+
+First, generate a detailed user persona that includes:
+1. Background and Demographics
+2. Professional Role and Expertise
+3. Main Interests and Focus Areas
+4. Learning Goals and Knowledge Seeking Patterns
+5. Potential Use Cases and Needs
+
+Then, based on this persona, recommend 5 specific websites that would be valuable for this user to scan and read. For each recommendation, include:
+1. Website URL
+2. Brief description (1-2 sentences)
+3. Why it's particularly relevant to this user's interests and needs
+
+Format your response in the following structure:
+
+## User Persona
+[Detailed persona description here]
+
+## Recommended Websites
+1. https://example1.com
+2. https://example2.com
+3. https://example3.com
+4. https://example4.com
+5. https://example5.com
+
+## Descriptions
+- **[Website 1]**: [Description and relevance]
+- **[Website 2]**: [Description and relevance]
+[etc...]"""
+
+def get_article_interest_check_prompt(persona: str, article_title: str, article_content: str) -> str:
+    return f"""Based on the following user persona, determine if this user would be interested in reading the given article. 
+Consider the user's background, interests, and learning goals.
+
+User Persona:
+{persona}
+
+Article Title: {article_title}
+
+Article Content:
+{article_content}
+
+Please respond with only "Yes" or "No" based on whether this article would be relevant and interesting to the user."""
+
+def get_article_summary_prompt(article_title: str, article_content: str) -> str:
+    return f"""Please provide a concise summary (around 200 words) of the following article. 
+Focus on the main points and key takeaways.
+
+Article Title: {article_title}
+
+Article Content:
+{article_content}
+
+Summary:""" 

@@ -15,5 +15,7 @@ urlpatterns = [
     path('tags/stats', views.get_tag_stats, name='tag_stats'),
     path('tags/persona', views.generate_persona, name='generate_persona'),
     path('tags/recommendations', views.generate_recommendations, name='generate_recommendations'),
+    path('tags/persona-with-recommendations', views.generate_persona_with_recommendations, name='generate_persona_with_recommendations'),
+    path('website/analyze', views.analyze_website_articles, name='analyze_website_articles'),
     path('translate', views.translate, name='translate'),
 ]

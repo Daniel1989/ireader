@@ -6,7 +6,7 @@ from django.http import JsonResponse, StreamingHttpResponse
 import json
 
 from knowledge.llm import exact, chat, stream_chat, llm_create_embedding, translate_text
-from knowledge.models import HtmlPage, HNIdeas, Conversation, Message, Vector, Tag
+from knowledge.models import HtmlPage, HNIdeas, Conversation, Message, Vector, Tag, WebsiteCrawlRule
 
 from django.core.paginator import Paginator
 
@@ -32,11 +32,16 @@ from knowledge.prompts import (
     get_hn_comment_check_prompt,
     get_product_idea_check_prompt,
     get_persona_generation_prompt,
-    get_recommendations_prompt
+    get_recommendations_prompt,
+    get_combined_persona_and_recommendations_prompt,
+    get_article_interest_check_prompt,
+    get_article_summary_prompt
 )
 
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.db.models import Count
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -484,4 +489,159 @@ def generate_recommendations(request):
                 "message": f"生成推荐失败: {str(e)}"
             })
     
+    return JsonResponse({"success": False, "message": "只支持POST请求"})
+
+@csrf_exempt
+def generate_persona_with_recommendations(request):
+    if request.method == 'GET':
+        try:
+            # Get tag statistics
+            tag_stats = Tag.objects.values('name').annotate(
+                count=Count('id')
+            ).order_by('-count')
+            
+            # Generate prompt with tag statistics
+            prompt = get_combined_persona_and_recommendations_prompt(tag_stats)
+            
+            # Get combined response from LLM
+            response = chat(prompt)
+            
+            # Split response into sections
+            sections = response.split('## ')
+            persona = ''
+            urls = []
+            
+            for section in sections:
+                if section.startswith('User Persona'):
+                    persona = section.replace('User Persona\n', '').strip()
+                elif section.startswith('Recommended Websites'):
+                    # Extract URLs from the recommendations section
+                    urls = [
+                        line.strip().replace(f"{i+1}. ", "")
+                        for i, line in enumerate(section.replace('Recommended Websites\n', '').strip().split('\n'))
+                        if line.strip() and line.strip().startswith(('1.', '2.', '3.', '4.', '5.'))
+                    ]
+            
+            return JsonResponse({
+                "success": True,
+                "data": {
+                    "persona": persona,
+                    "urls": urls,
+                    "tags": list(tag_stats)
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error generating persona with recommendations: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"生成用户画像和推荐失败: {str(e)}"
+            })
+    
+    return JsonResponse({"success": False, "message": "只支持GET请求"})
+
+@csrf_exempt
+def analyze_website_articles(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            website_url = data.get('url')
+            persona = data.get('persona')
+            
+            if not website_url or not persona:
+                return JsonResponse({
+                    "success": False,
+                    "message": "网站URL和用户画像不能为空"
+                })
+
+            # Get domain from URL
+            domain = urlparse(website_url).netloc
+            
+            try:
+                # Get crawl rules for the website
+                rules = WebsiteCrawlRule.objects.get(domain=domain)
+            except WebsiteCrawlRule.DoesNotExist:
+                return JsonResponse({
+                    "success": False,
+                    "message": f"未找到网站 {domain} 的爬取规则"
+                })
+
+            # Fetch website content
+            try:
+                response = requests.get(website_url, timeout=10)
+                response.raise_for_status()
+                soup = BeautifulSoup(response.text, 'html.parser')
+            except Exception as e:
+                logger.error(f"Error fetching website {website_url}: {str(e)}")
+                return JsonResponse({
+                    "success": False,
+                    "message": f"获取网站内容失败: {str(e)}"
+                })
+
+            # Find article links
+            article_links = []
+            articles = soup.select(rules.article_list_selector)
+            for article in articles[:20]:  # Limit to first 20 articles
+                link_element = article.select_one(rules.article_link_selector)
+                if link_element and link_element.get('href'):
+                    article_links.append(urljoin(website_url, link_element.get('href')))
+
+            # Process each article
+            interesting_articles = []
+            for article_url in article_links:
+                try:
+                    # Fetch article content
+                    article_response = requests.get(article_url, timeout=10)
+                    article_response.raise_for_status()
+                    article_soup = BeautifulSoup(article_response.text, 'html.parser')
+
+                    # Extract title and content
+                    title = article_soup.select_one(rules.article_title_selector)
+                    content = article_soup.select_one(rules.article_content_selector)
+
+                    if not title or not content:
+                        continue
+
+                    title_text = title.get_text().strip()
+                    content_text = content.get_text().strip()
+
+                    # Check if user would be interested
+                    interest_check = chat(get_article_interest_check_prompt(
+                        persona=persona,
+                        article_title=title_text,
+                        article_content=content_text
+                    ))
+
+                    if interest_check.strip().lower() == 'yes':
+                        # Generate summary for interesting articles
+                        summary = chat(get_article_summary_prompt(
+                            article_title=title_text,
+                            article_content=content_text
+                        ))
+
+                        interesting_articles.append({
+                            "url": article_url,
+                            "title": title_text,
+                            "summary": summary
+                        })
+
+                except Exception as e:
+                    logger.error(f"Error processing article {article_url}: {str(e)}")
+                    continue
+
+            return JsonResponse({
+                "success": True,
+                "data": {
+                    "total_articles": len(article_links),
+                    "interesting_articles": interesting_articles
+                }
+            })
+
+        except Exception as e:
+            logger.error(f"Error analyzing website: {str(e)}")
+            return JsonResponse({
+                "success": False,
+                "message": f"分析网站失败: {str(e)}"
+            })
+
     return JsonResponse({"success": False, "message": "只支持POST请求"})

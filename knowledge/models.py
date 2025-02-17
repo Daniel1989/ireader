@@ -151,3 +151,15 @@ class Message(CreationModificationDateMixin):
         verbose_name = '消息'
         verbose_name_plural = '消息'
         ordering = ['created']
+
+class WebsiteCrawlRule(models.Model):
+    domain = models.CharField(max_length=255, unique=True)
+    article_list_selector = models.CharField(max_length=255)  # CSS selector for article list
+    article_link_selector = models.CharField(max_length=255)  # CSS selector for article links
+    article_title_selector = models.CharField(max_length=255)  # CSS selector for article title
+    article_content_selector = models.CharField(max_length=255)  # CSS selector for article content
+    created = models.DateTimeField(default=timezone_now)
+    updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.domain
