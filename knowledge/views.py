@@ -42,6 +42,13 @@ from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.db.models import Count
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
+from playwright.sync_api import sync_playwright
+from firecrawl import FirecrawlApp
+app = FirecrawlApp(api_key="fc-5078907d922542fe9003dbde96271a1e")
+
+from .website.crawler import fetch_page_content
+from .website.analyzer import analyze_page_structure
+from .website.utils import extract_article_links, save_crawl_rules
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -540,108 +547,130 @@ def generate_persona_with_recommendations(request):
     
     return JsonResponse({"success": False, "message": "只支持GET请求"})
 
+def analyze_page_structure(html_content):
+    """Use AI to analyze page structure and determine selectors"""
+    prompt = """Analyze this HTML page and identify the CSS selectors for:
+1. Article list container
+2. Article links within the list
+3. Article titles
+4. Article content
+
+Return the result in JSON format like this:
+{
+    "article_list_selector": "selector for the container of all articles",
+    "article_link_selector": "selector for the article links",
+    "article_title_selector": "selector for article titles",
+    "article_content_selector": "selector for article content"
+}
+
+HTML Content:
+"""
+    try:
+        result = chat(prompt + "\n" + html_content)
+        return json.loads(result), None
+    except Exception as e:
+        logger.error(f"Error analyzing page structure: {str(e)}")
+        return None, str(e)
+
 @csrf_exempt
 def analyze_website_articles(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            website_url = data.get('url')
-            persona = data.get('persona')
+    """Analyze website articles and extract relevant links"""
+    if request.method != 'POST':
+        return JsonResponse({"success": False, "message": "只支持POST请求"})
+
+    try:
+        data = json.loads(request.body)
+        website_url = data.get('url')
+        persona = data.get('persona')
+        force_update = data.get('force_update', False)
+        
+        if not website_url or not persona:
+            return JsonResponse({
+                "success": False,
+                "message": "网站URL和用户画像不能为空"
+            })
+
+        # Get domain from URL for rules
+        domain = urlparse(website_url).netloc
+        
+        # If force_update is True or no rules exist, create/update rules
+        if force_update or not WebsiteCrawlRule.objects.filter(domain=domain).exists():
+            logger.info(f"{'Forcing update of' if force_update else 'Creating new'} rules for domain: {domain}")
             
-            if not website_url or not persona:
-                return JsonResponse({
-                    "success": False,
-                    "message": "网站URL和用户画像不能为空"
-                })
+            # Fetch page content
+            html_content, error = fetch_page_content(website_url)
+            if error:
+                return JsonResponse({"success": False, "message": error})
 
-            # Get domain from URL
-            domain = urlparse(website_url).netloc
+            # Analyze page structure
+            selectors, error = analyze_page_structure(html_content)
+            if error:
+                return JsonResponse({"success": False, "message": error})
             
-            try:
-                # Get crawl rules for the website
-                rules = WebsiteCrawlRule.objects.get(domain=domain)
-            except WebsiteCrawlRule.DoesNotExist:
-                return JsonResponse({
-                    "success": False,
-                    "message": f"未找到网站 {domain} 的爬取规则"
-                })
+            # Extract article links
+            article_links, error = extract_article_links(html_content, selectors, website_url)
+            if error:
+                return JsonResponse({"success": False, "message": error})
 
-            # Fetch website content
-            try:
-                response = requests.get(website_url, timeout=10)
-                response.raise_for_status()
-                soup = BeautifulSoup(response.text, 'html.parser')
-            except Exception as e:
-                logger.error(f"Error fetching website {website_url}: {str(e)}")
-                return JsonResponse({
-                    "success": False,
-                    "message": f"获取网站内容失败: {str(e)}"
-                })
-
-            # Find article links
-            article_links = []
-            articles = soup.select(rules.article_list_selector)
-            for article in articles[:20]:  # Limit to first 20 articles
-                link_element = article.select_one(rules.article_link_selector)
-                if link_element and link_element.get('href'):
-                    article_links.append(urljoin(website_url, link_element.get('href')))
-
-            # Process each article
-            interesting_articles = []
-            for article_url in article_links:
-                try:
-                    # Fetch article content
-                    article_response = requests.get(article_url, timeout=10)
-                    article_response.raise_for_status()
-                    article_soup = BeautifulSoup(article_response.text, 'html.parser')
-
-                    # Extract title and content
-                    title = article_soup.select_one(rules.article_title_selector)
-                    content = article_soup.select_one(rules.article_content_selector)
-
-                    if not title or not content:
-                        continue
-
-                    title_text = title.get_text().strip()
-                    content_text = content.get_text().strip()
-
-                    # Check if user would be interested
-                    interest_check = chat(get_article_interest_check_prompt(
-                        persona=persona,
-                        article_title=title_text,
-                        article_content=content_text
-                    ))
-
-                    if interest_check.strip().lower() == 'yes':
-                        # Generate summary for interesting articles
-                        summary = chat(get_article_summary_prompt(
-                            article_title=title_text,
-                            article_content=content_text
-                        ))
-
-                        interesting_articles.append({
-                            "url": article_url,
-                            "title": title_text,
-                            "summary": summary
-                        })
-
-                except Exception as e:
-                    logger.error(f"Error processing article {article_url}: {str(e)}")
-                    continue
+            # Save rules
+            rules, created = save_crawl_rules(domain, selectors)
+            if isinstance(created, str):  # Error occurred
+                return JsonResponse({"success": False, "message": created})
 
             return JsonResponse({
                 "success": True,
                 "data": {
-                    "total_articles": len(article_links),
-                    "interesting_articles": interesting_articles
+                    "article_links": article_links,
+                    "selectors": selectors,
+                    "using_existing_rules": False,
+                    "rule_created": created,
+                    "rule_updated": not created
                 }
             })
+        
+        # Use existing rules
+        try:
+            rules = WebsiteCrawlRule.objects.get(domain=domain)
+            logger.info(f"Using existing rules for domain: {domain}")
+            
+            # Fetch page content
+            html_content, error = fetch_page_content(website_url)
+            if error:
+                return JsonResponse({"success": False, "message": error})
 
-        except Exception as e:
-            logger.error(f"Error analyzing website: {str(e)}")
+            # Extract article links using existing rules
+            article_links, error = extract_article_links(
+                html_content,
+                {
+                    'article_list_selector': rules.article_list_selector,
+                    'article_link_selector': rules.article_link_selector
+                },
+                website_url
+            )
+            if error:
+                return JsonResponse({"success": False, "message": error})
+
+            return JsonResponse({
+                "success": True,
+                "data": {
+                    "article_links": article_links,
+                    "selectors": {
+                        "article_list_selector": rules.article_list_selector,
+                        "article_link_selector": rules.article_link_selector
+                    },
+                    "using_existing_rules": True
+                }
+            })
+            
+        except WebsiteCrawlRule.DoesNotExist:
             return JsonResponse({
                 "success": False,
-                "message": f"分析网站失败: {str(e)}"
+                "message": "规则不存在"
             })
 
-    return JsonResponse({"success": False, "message": "只支持POST请求"})
+    except Exception as e:
+        logger.error(f"Error analyzing website: {str(e)}")
+        return JsonResponse({
+            "success": False,
+            "message": f"分析网站失败: {str(e)}"
+        })

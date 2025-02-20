@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import HtmlPage, HNIdeas, Tag, Vector, SystemConfig, Conversation, Message
+from .models import (
+    HtmlPage, 
+    HNIdeas, 
+    Tag, 
+    Vector, 
+    SystemConfig, 
+    Conversation, 
+    Message,
+    WebsiteCrawlRule
+)
 
 
 @admin.register(SystemConfig)
@@ -13,6 +22,38 @@ class SystemConfigAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Prevent accidental deletion of critical system configs
         return request.user.is_superuser
+
+
+@admin.register(WebsiteCrawlRule)
+class WebsiteCrawlRuleAdmin(admin.ModelAdmin):
+    list_display = ('domain', 'created', 'updated')
+    list_filter = ('created', 'updated')
+    search_fields = ('domain',)
+    readonly_fields = ('created', 'updated')
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('domain', 'created', 'updated')
+        }),
+        ('选择器配置', {
+            'fields': (
+                'article_list_selector',
+                'article_link_selector',
+                'article_title_selector',
+                'article_content_selector'
+            ),
+            'description': '网站文章爬取规则的CSS选择器配置'
+        }),
+    )
+    ordering = ('-updated',)
+
+    def has_delete_permission(self, request, obj=None):
+        return True
+
+    def has_add_permission(self, request):
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        return True
 
 
 @admin.register(HtmlPage)
