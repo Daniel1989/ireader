@@ -1,10 +1,11 @@
 import logging
 from firecrawl import FirecrawlApp
-
+import os
 logger = logging.getLogger(__name__)
-
+from dotenv import load_dotenv
+load_dotenv()
 # Initialize FirecrawlApp
-app = FirecrawlApp(api_key="fc-5078907d922542fe9003dbde96271a1e")
+app = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
 
 def fetch_page_content(url):
     """Fetch page content using FirecrawlApp"""

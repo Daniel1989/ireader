@@ -44,11 +44,15 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from playwright.sync_api import sync_playwright
 from firecrawl import FirecrawlApp
-app = FirecrawlApp(api_key="fc-5078907d922542fe9003dbde96271a1e")
+
 
 from .website.crawler import fetch_page_content
 from .website.analyzer import analyze_page_structure
 from .website.utils import extract_article_links, save_crawl_rules
+from dotenv import load_dotenv
+load_dotenv()
+
+app = FirecrawlApp(api_key=os.getenv("FIRECRAWL_API_KEY"))
 
 # Set up logging directory
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
